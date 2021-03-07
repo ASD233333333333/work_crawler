@@ -4,11 +4,11 @@
 
 'use strict';
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
-CeL.run('application.net.work_crawler.jieqi_article');
+CeL.run('application.net.work_crawler.sites.jieqi_article');
 
 // ----------------------------------------------------------------------------
 

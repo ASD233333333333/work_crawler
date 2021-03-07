@@ -4,7 +4,7 @@
 
 'use strict';
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
@@ -13,6 +13,9 @@ var crawler = new CeL.work_crawler({
 
 	// 檔案數量多時會拖比較久，必須加長 timeout 時間。
 	timeout : '40s',
+
+	// e.g., 26945 恶女会改变\0025 023\26945-25-024.png
+	acceptable_types : 'png',
 
 	// one_by_one : true,
 	base_URL : 'https://manga.bilibili.com/',
@@ -54,7 +57,7 @@ var crawler = new CeL.work_crawler({
 	parse_work_data : function(html, get_label, extract_work_data) {
 		// console.log(html);
 		var work_data = JSON.parse(html).data;
-		// 正規化成 CeJS 線上作品爬蟲程式庫的格式。
+		// 正規化成 CeJS 網路作品爬蟲程式庫的格式。
 		Object.assign(work_data, {
 			author : work_data.author_name.join(' '),
 			description : work_data.evaluate,
@@ -70,8 +73,9 @@ var crawler = new CeL.work_crawler({
 			chapter_list : work_data.ep_list.map(function(chapter_data) {
 				return {
 					id : chapter_data.id,
-					title : /* chapter_data.title || */
-					chapter_data.short_title,
+					title : chapter_data.short_title
+					// e.g., https://manga.bilibili.com/detail/mc26723
+					+ (chapter_data.title ? ' ' + chapter_data.title : ''),
 					limited : chapter_data.is_locked,
 					url : [ this.API_BASE + 'Index?device=h5&platform=h5',
 					//
@@ -167,12 +171,27 @@ var crawler = new CeL.work_crawler({
 			//
 			function(XMLHttp) {
 				// console.log(XMLHttp);
-				// console.log(JSON.parse(XMLHttp.responseText).data);
-				chapter_data.image_list = JSON.parse(XMLHttp.responseText).data
-						.map(function(image_data) {
-							return _this.BFS_URL + image_data.url + '?token='
-									+ image_data.token;
-						});
+				var response = XMLHttp.responseText;
+				try {
+					response = JSON.parse(response);
+				} catch (e) {
+					// TODO: handle exception
+				}
+				if (!response || !response.data) {
+					CeL.error('下載出錯！假如反覆出現此錯誤，並且確認圖片沒問題，煩請回報。取得資料：'
+							+ XMLHttp.responseText);
+					callback();
+					return;
+				}
+				// console.log(response.data);
+				chapter_data.image_list = response.data
+				// 2019/7/4–2019/8/7 之間? 哔哩哔哩漫画 改版
+				.map(function(image_data) {
+					var url = image_data.url;
+					if (!url.includes('://'))
+						url = _this.BFS_URL + url;
+					return url + '?token=' + image_data.token;
+				});
 				// console.log(chapter_data);
 				callback();
 
@@ -185,8 +204,6 @@ var crawler = new CeL.work_crawler({
 });
 
 // ----------------------------------------------------------------------------
-
-// CeL.set_debug(3);
 
 // return t.prototype._generateHashKey = function() @
 // https://s1.hdslb.com/bfs/static/manga/mobile/static/js/read.b8ba074e2011370f741a.js
@@ -211,4 +228,7 @@ function unhashContent(episodeId, seasonId, indexData) {
 		indexData[t] ^= hashKey[t % 8];
 }
 
+// ----------------------------------------------------------------------------
+
+// CeL.set_debug(3);
 start_crawler(crawler, typeof module === 'object' && module);

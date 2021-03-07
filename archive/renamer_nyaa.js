@@ -12,7 +12,7 @@
 
 global.need_work_id = false;
 
-require('./work_crawler_loder.js');
+require('./work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
@@ -42,7 +42,7 @@ CeL.fs_mkdir(base_directory);
 
 var
 // target_files[fso name] = path
-target_files = CeL.null_Object(), target_directories = CeL.null_Object(),
+target_files = Object.create(null), target_directories = Object.create(null),
 
 cache_file = base_directory + 'data.json',
 //

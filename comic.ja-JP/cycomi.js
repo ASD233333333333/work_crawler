@@ -4,14 +4,14 @@
 
 'use strict';
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
 var crawler = new CeL.work_crawler({
 	// 所有的子檔案要修訂註解說明時，應該都要順便更改在CeL.application.net.comic中Comic_site.prototype內的母comments，並以其為主體。
 
-	// 日本的線上漫畫網站習慣刪掉舊章節，因此每一次都必須從頭檢查。
+	// 日本的網路漫畫網站習慣刪掉舊章節，因此每一次都必須從頭檢查。
 	// recheck : true,
 	// 這個網站以日本網站來說比較特別，所有章節皆列在列表上。
 
@@ -40,13 +40,33 @@ var crawler = new CeL.work_crawler({
 
 		extract_work_data(work_data, html, null, true);
 
+		if (!work_data.author
+				&& (!work_data.title || work_data.title.includes('サイコミ'))) {
+			var text = html.between('class="not-found', '</div>').between('>');
+			// <div class="row not-found">
+			// <div class="not-found-web">
+			// <img class="no-opacity block" src="/img/404_pc.png"
+			// alt="お探しのページが見つかりませんでした">
+			// <p>このページは閲覧できません。</p>
+			text = text.between('<img ', '>').between('alt="', '"')
+					|| get_label(text);
+			if (text) {
+				delete work_data.title;
+				work_data.removed = text;
+			} else {
+				// 2, 64: redirected to top page
+			}
+		}
+
 		// console.log(work_data);
 		return work_data;
 	},
 	get_chapter_list : function(work_data, html, get_label) {
 		var matched, PATTERN_chapter =
-		//
-		/<a href="([^<>"]+)" class="chapter-item">([\s\S]+?)<\/a>/g;
+		// cycomi 2019/4/19 至5月間改版。
+		// <a class="" href="/fw/cycomibrowser/chapter/pages/6792"
+		// class="chapter-item">
+		/<a [\s\S]*?href="([^<>"]+)" class="chapter-item">([\s\S]+?)<\/a>/g;
 
 		work_data.chapter_list = [];
 		while (matched = PATTERN_chapter.exec(html)) {
@@ -66,7 +86,8 @@ var crawler = new CeL.work_crawler({
 			work_data.chapter_list.push(chapter_data);
 		}
 
-		work_data.chapter_list.reverse();
+		// 2020/1/28-2/22間轉正序
+		// work_data.chapter_list.reverse();
 
 		// 因為中間的章節可能已經被下架，因此依章節標題來定章節編號。
 		// 這個網站以日本網站來說比較特別，所有章節皆列在列表上。
@@ -77,21 +98,40 @@ var crawler = new CeL.work_crawler({
 		var chapter_data = work_data.chapter_list[chapter_NO - 1];
 		Object.assign(chapter_data, {
 			// 設定必要的屬性。
-			image_count : html
-			// <span id="viewer-max-page">19</span>
-			.between('<span id="viewer-max-page">', '</span>')
-			// 會算入一張 placeholder，無論在前頭或最後，無論存不存在。
-			// e.g., https://cycomi.com/fw/cycomibrowser/chapter/pages/5135
-			// 但也有例外: https://cycomi.com/fw/cycomibrowser/chapter/pages/3705
-			- 1,
 			image_list : []
 		});
 
-		html = html.between('<div class="swiper-slide">');
-		html = html.between(null, 'viewer-last-page')
-				|| html.between(null, '<div class="author');
+		// <div id="vertical-viewer" class="vertical-viewer is-visibility-hidden
+		// only-vertical">
+		var matched = html.between('<div id="vertical-viewer"',
+				'<div class="last-page">');
+		if (matched) {
+			// 縦書き
+			// https://cycomi.com/fw/cycomibrowser/chapter/title/145
+			html = matched;
+			// this.MIN_LENGTH = 150;
+			this.setup_value('MIN_LENGTH', 150);
 
-		var matched, PATTERN_image = /<img\s[^<>]*?src="([^<>"]+)"/g;
+		} else {
+			// 有例外
+			if (false) {
+				chapter_data.image_count = html
+				// <span id="viewer-max-page">19</span>
+				.between('<span id="viewer-max-page">', '</span>')
+				// 會算入一張 placeholder，無論在前頭或最後，無論存不存在。
+				// e.g., https://cycomi.com/fw/cycomibrowser/chapter/pages/5135
+				// 但也有例外: https://cycomi.com/fw/cycomibrowser/chapter/pages/3705
+				- 1;
+			}
+
+			html = html.between('<div class="swiper-slide">');
+			html = html.between(null, 'viewer-last-page')
+					|| html.between(null, '<div class="author');
+
+			this.setup_value('MIN_LENGTH', 'default');
+		}
+
+		var PATTERN_image = /<img\s[^<>]*?src="([^<>"]+)"/g;
 		while (matched = PATTERN_image.exec(html)) {
 			// delete matched.input;
 			// console.log(matched);
@@ -110,9 +150,7 @@ var crawler = new CeL.work_crawler({
 			chapter_data.image_list.push(url);
 		}
 
-		// 有例外
-		delete chapter_data.image_count;
-
+		// console.log(chapter_data);
 		return chapter_data;
 	}
 });

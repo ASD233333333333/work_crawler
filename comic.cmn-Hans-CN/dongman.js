@@ -4,11 +4,11 @@
 
 'use strict';
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
-CeL.run('application.net.work_crawler.webtoon');
+CeL.run('application.net.work_crawler.sites.webtoon');
 
 // ----------------------------------------------------------------------------
 

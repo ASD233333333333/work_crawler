@@ -66,14 +66,14 @@ reader.readAsArrayBuffer(blob);
 
 'use strict';
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
 var crawler = new CeL.work_crawler({
 	// 所有的子檔案要修訂註解說明時，應該都要順便更改在CeL.application.net.comic中Comic_site.prototype內的母comments，並以其為主體。
 
-	// 日本的線上漫畫網站習慣刪掉舊章節，因此每一次都必須從頭檢查。
+	// 日本的網路漫畫網站習慣刪掉舊章節，因此每一次都必須從頭檢查。
 	recheck : true,
 
 	// one_by_one : true,
@@ -89,12 +89,13 @@ var crawler = new CeL.work_crawler({
 	// 解析 作品名稱 → 作品id get_work()
 	search_URL : 'contents/search/?q=',
 	parse_search_result : function(html, get_label) {
+		// console.log(html);
 		html = html.between('<ul class="tileList', '</ul>');
 
 		var id_list = [], id_data = [];
 		html.each_between('<li', '</li>', function(text) {
-			var url = text.match(/ href="([^<>"]+)"/), title = get_label(text
-					.between('<h2', '</h2>').between('>'));
+			var title = get_label(text.between('<h2', '</h2>').between('>'));
+			var url = text.match(/ href="([^<>"]+)"/);
 			id_list.push(url[1].match(/\/([a-zA-Z\d_]+)\/$/)[1]);
 			id_data.push(title);
 		});
@@ -154,10 +155,13 @@ var crawler = new CeL.work_crawler({
 	get_chapter_list : function(work_data, html, get_label) {
 		// バックナンバー
 		// <ul class="acBacknumber-list first-preview clearfix" id="reversible">
-		html = html.between('<ul class="acBacknumber-list', '<section>');
+		html = html.between('<ul class="acBacknumber-list', '</section>');
+		// console.log(html);
 		work_data.chapter_list = [];
 		html.each_between('<li', '</li>', function(text) {
-			var matched = text.match(/<a title="([^<>"]+)" href="([^<>"]+)"/);
+			// 不可用 /title="([^<>"]+)"/：《クロウ・レコード <Infinite Dendrogram Another>》
+			// "(.+?)" e.g., `"かわいい"はキミのもの`
+			var matched = text.match(/<a title="(.+?)" href="([^<>"]+)"/);
 			work_data.chapter_list.push({
 				// matched[1].replace(work_data.title, '')
 				title : get_label(text.between(
@@ -203,9 +207,9 @@ var crawler = new CeL.work_crawler({
 			return;
 		}
 
-		var decode_key = image_data.meta.drm_hash.slice(0, 16)
+		var decode_key = image_data.meta.drm_hash.slice(0, 16);
 		// decode image 用的關鍵 key
-		.match(/[\da-f]{2}/gi).map(function(t) {
+		decode_key = decode_key.match(/[\da-f]{2}/gi).map(function(t) {
 			return parseInt(t, 16);
 		});
 		for (var index = 0, length = contents.length; index < length; index++) {

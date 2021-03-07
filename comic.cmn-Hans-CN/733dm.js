@@ -6,11 +6,11 @@
 
 'use strict';
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
-CeL.run('application.net.work_crawler.qTcms2017');
+CeL.run('application.net.work_crawler.sites.qTcms2017');
 
 // ----------------------------------------------------------------------------
 
@@ -26,6 +26,9 @@ var crawler = CeL.qTcms2017({
 	// 當圖像檔案過小，或是被偵測出非圖像(如不具有EOI)時，依舊強制儲存檔案。
 	skip_error : true,
 
+	// 當網站不允許太過頻繁的訪問/access時，可以設定下載之前的等待時間(ms)。
+	// chapter_time_interval : '2s',
+
 	// 2018/3: https://www.733dm.net/
 	base_URL : 'https://www.733.so/',
 
@@ -36,7 +39,7 @@ var crawler = CeL.qTcms2017({
 	common_catalog : 'mh',
 
 	// 取得作品的章節資料。 get_work_data()
-	parse_chapter_data : function(html, work_data) {
+	parse_chapter_data_201811 : function(html, work_data) {
 		var chapter_data = html.between('qTcms_S_m_murl_e="', '"');
 		if (chapter_data) {
 			// 對於非utf-8編碼之中文，不能使用 atob()???
@@ -76,6 +79,16 @@ var crawler = CeL.qTcms2017({
 		// console.log(JSON.stringify(chapter_data));
 
 		return chapter_data;
+	},
+
+	// function f_qTcms_Pic_curUrl_realpic(v) @
+	// https://www.733.so/template/skin2/css/d7s/js/show.20190608.js?20190902222912
+	for_each_image : function(url, parameters, base64_encode) {
+		var File_Server = "https://api.733.so/newfile.php?data=";
+		return File_Server
+				+ base64_encode(url + "|" + Date.now() + "|"
+						+ parameters.qTcms_S_m_id + "|"
+						+ parameters.qTcms_S_p_id + "|pc");
 	}
 });
 

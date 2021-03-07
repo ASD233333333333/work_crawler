@@ -4,7 +4,16 @@
  */
 
 // const
-var app = require('electron').app, BrowserWindow = require('electron').BrowserWindow, path = require('path'), url = require('url');
+var path = require('path'), url = require('url');
+
+if (process.env.USERPROFILE
+		&& !module.paths.includes(process.env.USERPROFILE + path.sep
+				+ 'node_modules')) {
+	module.paths.push(process.env.USERPROFILE + path.sep + 'node_modules');
+}
+
+// const
+var electron = require('electron'), app = electron.app, BrowserWindow = electron.BrowserWindow;
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -22,11 +31,13 @@ function create_window() {
 			// https://github.com/electron/electron/issues/5113
 			// preload : "preload.js",
 			// https://electronjs.org/docs/faq
-			nodeIntegration : true
+			nodeIntegration : true,
+			// https://github.com/electron/electron/issues/27957
+			contextIsolation : false
 		}
 	},
 	// https://github.com/electron/electron/blob/master/docs/api/screen.md
-	require('electron').screen.getPrimaryDisplay().workAreaSize));
+	electron.screen.getPrimaryDisplay().workAreaSize));
 
 	// https://electronjs.org/docs/api/browser-window
 	win.maximize();
@@ -45,17 +56,18 @@ function create_window() {
 		});
 	}
 
-	require('electron').ipcMain.on('set_progress', function(event, progress) {
+	electron.ipcMain.on('set_progress', function(event, progress) {
 		// https://electronjs.org/docs/tutorial/progress-bar
 		// progress indicator:
 		// https://docs.microsoft.com/en-us/dotnet/api/system.windows.shell.taskbariteminfo.progressvalue
 		win.setProgressBar(progress);
 	});
 
-	require('electron').ipcMain.on('open_DevTools', function(event, open) {
-		if (open)
+	electron.ipcMain.on('open_DevTools', function(event, open) {
+		if (open) {
 			// Open the DevTools.
 			win.webContents.openDevTools();
+		}
 	});
 
 	// Emitted when the window is closed.
@@ -65,6 +77,38 @@ function create_window() {
 		// when you should delete the corresponding element.
 		win = null;
 	});
+
+	return;
+
+	// ----------------------------------------------------
+	// https://github.com/iffy/electron-updater-example/blob/master/main.js
+	// Create the Menu
+	var template = [];
+	if (process.platform === 'darwin') {
+		// OS X
+		var name = app.getName();
+		template.unshift({
+			label : name,
+			submenu : [ {
+				label : 'About ' + name,
+				role : 'about'
+			}, {
+				label : 'Quit',
+				accelerator : 'Command+Q',
+				click : function() {
+					app.quit();
+				}
+			} ]
+		})
+	}
+
+	if (template.length === 0)
+		return;
+
+	var menu = electron.Menu.buildFromTemplate(template);
+	electron.Menu.setApplicationMenu(menu);
+
+	createDefaultWindow();
 }
 
 // This method will be called when Electron has finished
@@ -94,13 +138,32 @@ app.on('activate', function() {
 
 // --------------------------------------------------------------------------------------------------------------------
 
+// open FSO dialog
+electron.ipcMain.on('open_dialog', function(event, options) {
+	var id = options[0];
+	options = options[1];
+	electron.dialog.showOpenDialog(options)
+	// https://electronjs.org/docs/api/dialog
+	.then(function(result, error) {
+		// console.log(result);
+		event.sender.send('open_dialog', [ id, error || result ]);
+	});
+});
+
 // 接收訊息
-require('electron').ipcMain.on('send_message', function(event, message) {
+electron.ipcMain.on('send_message', function(event, message) {
 	if (!message) {
 		return;
 	}
 	if (message === 'check-for-updates') {
 		start_update(event.sender);
+
+	} else if (message === 'relaunch') {
+		console.log('Relaunch application...');
+		// https://electronjs.org/docs/api/app#apprelaunchoptions
+		app.relaunch();
+		app.exit(0);
+
 	} else {
 		// console.log(message);
 		try {
@@ -138,8 +201,6 @@ function start_update(event_sender) {
 			return;
 		}
 
-		autoUpdater.checkForUpdatesAndNotify();
-
 		if (false) {
 			autoUpdater
 					.setFeedURL({
@@ -149,45 +210,99 @@ function start_update(event_sender) {
 		}
 
 		autoUpdater.on('checking-for-update', function() {
-			event_sender.send('send_message_log', '開始檢測安裝包更新……');
+			event_sender.send('send_message_log', '開始檢測安裝包更新……'
+			//
+			+ JSON.stringify({
+				autoDownload : autoUpdater.autoDownload,
+				autoInstallOnAppQuit : autoUpdater.autoInstallOnAppQuit,
+				currentVersion : autoUpdater.currentVersion,
+				channel : autoUpdater.channel
+			}));
 		});
+
+		var start_time = Date.now(), latest_time = Date.now(), latest_progress = 10;
 		autoUpdater.on('update-available', function(info) {
-			event_sender.send('send_message_info', [ '新安裝包出來了：%1',
+			event_sender.send('send_message_info', [ '有新版安裝包：%1',
 					JSON.stringify(info) ]);
+			// 已經下載完畢則不會再下載，會直接跳到 'update-downloaded'。
+			if (autoUpdater.autoDownload) {
+				event_sender.send('send_message_info',
+						'開始下載安裝包。若還沒下載完就離開程式、出錯，下次會從頭下載。您可升高訊息欄的偵錯等級，以得知下載進度。');
+				latest_time = Date.now();
+			}
+			return;
+
+			setTimeout(function() {
+				appUpdater.checkForUpdates().then(function(updateInfo) {
+					event_sender.send('send_message_log',
+					//
+					'Start downloading update manually.');
+					appUpdater.downloadUpdate(updateInfo.latest)
+					//
+					.then(function(result) {
+						event_sender.send('send_message_info',
+						//
+						JSON.stringify(result));
+					});
+				});
+			}, 2000);
 		});
 		autoUpdater.on('update-not-available', function(info) {
-			event_sender.send('send_message_log', [ '沒有新安裝包：%1',
+			event_sender.send('send_message_log', [ '沒有新安裝包。當前版本：%1',
 			// {Object}info 會包含 .releaseNotes
 			JSON.stringify(info && info.version) ]);
 		});
+
 		autoUpdater.on('error', function(error) {
-			event_sender.send('send_message_warn', [ '安裝包更新出錯：%1', error ]);
+			// 安裝包環境無 CLI console。
+			// console.error(error);
+			event_sender.send('send_message_warn', [ '安裝包更新出錯：%1',
+			// {Error}error 不能用 `JSON.stringify(error)`。
+			String(error) ]);
 		});
+
 		autoUpdater.on('download-progress', function(progressObj) {
+			// process.stdout.write(progressObj.percent + '%...\r'));
 			event_sender.send('send_message_debug', [
-					'安裝包已下載%1，下載速度：%2',
-					progressObj.percent + '%' + ' (' + progressObj.transferred
-							+ "/" + progressObj.total + ')',
-					progressObj.bytesPerSecond ]);
+					'安裝包已下載 %1，下載速度 %2 bytes/s。',
+					progressObj.percent.toFixed(2) + '%' + ' ('
+							+ progressObj.transferred + "/" + progressObj.total
+							+ ')', progressObj.bytesPerSecond ]);
+			// 整個下載過程可能需要十幾分鐘。增加安裝包下載進程訊息。
+			var time_diff = Date.now() - latest_time;
+			if (time_diff > 1 * 60 * 1000 || time_diff > 10 * 1000
+					&& progressObj.percent >= latest_progress) {
+				event_sender.send('send_message_log', [
+						'安裝包已下載 %1，預估還需 %2 分鐘下載完畢。',
+						progressObj.percent.toFixed(2) + '%',
+						((Date.now() - start_time) * (progressObj.total - progressObj.transferred) / progressObj.transferred / (60 * 1000)).toFixed(1) ]);
+				// 每 10% 顯示一次訊息。
+				latest_progress = Math.ceil(progressObj.percent / 10) * 10;
+				latest_time = Date.now();
+			}
 		});
 		autoUpdater.on('update-downloaded', function(event, releaseNotes,
 				releaseName, releaseDate, updateUrl, quitAndUpdate) {
 			event_sender.send('send_message_log', [ '新版安裝包下載完成：%1',
 					JSON.stringify(event) ]);
 
-			require('electron').ipcMain.on('start-install-now',
-			//
-			function(e, arg) {
-				console.log(arguments);
-				console.log("重新啟動應用程式即可更新。");
+			electron.ipcMain.on('start-install-now', function(e, arg) {
 				// some code here to handle event
 				autoUpdater.quitAndInstall();
+				console.log(arguments);
+				console.log("重新啟動程式即可更新。");
 			});
 		});
+
+		// autoUpdater.autoDownload = true;
+
+		// .checkForUpdatesAndNotify()要放在最後才執行，預防 .on('checking-for-update') 不見。
+		autoUpdater.checkForUpdatesAndNotify();
 
 	} catch (e) {
 		// e.g., Error: Cannot find module 'electron-updater'
 		// win.webContents.send()
+		// console.error(e);
 		event_sender.send('send_message_warn', [ '安裝包更新失敗：%1', String(e) ]);
 	}
 }

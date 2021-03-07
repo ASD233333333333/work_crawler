@@ -1,5 +1,5 @@
 ﻿/**
- * CeJS 線上小說漫畫下載工具 命令列介面自動更新工具。
+ * CeJS 網路小說漫畫下載工具 命令列介面自動更新工具。
  * 
  * @since 2018/8/27
  * 
@@ -9,23 +9,24 @@
 'use strict';
 
 var repository = 'gh-updater', branch = 'master', update_script_url = 'https://raw.githubusercontent.com/kanasimi/'
-		+ repository + '/' + branch + '/' + 'GitHub.updater.node.js';
+		+ repository + '/' + branch + '/' + 'GitHub.updater.node.js', updater;
 
 // ----------------------------------------------------------------------------
-
-// const
-var node_https = require('https'), node_fs = require('fs');
-
-download_update_tool(update_script_url, update_components);
+// Using in GitHub.updater.node.js work_crawler.updater.js pack_up.js
 
 function show_info(message) {
 	process.title = message;
 	console.info('\x1b[35;46m' + message + '\x1b[0m');
 }
 
-function download_update_tool(update_script_url, callback) {
-	show_info('下載 ' + repository + ' 更新工具...');
-	node_https.get(update_script_url, function(response) {
+// ----------------------------------------------------------------------------
+// Using in work_crawler.updater.js pack_up.js
+
+// const
+var node_https = require('https'), node_fs = require('fs');
+
+function fetch_url(url, callback) {
+	node_https.get(url, function(response) {
 		var buffer_array = [], sum_size = 0;
 
 		response.on('data', function(data) {
@@ -36,12 +37,17 @@ function download_update_tool(update_script_url, callback) {
 		response.on('end', function(e) {
 			var contents = Buffer.concat(buffer_array, sum_size).toString(),
 			//
-			update_script_name = update_script_url.match(/[^\\\/]+$/)[0];
-			console.info(update_script_name + ': ' + sum_size + ' bytes.');
-			node_fs.writeFileSync(update_script_name, contents);
+			file_name = url.match(/[^\\\/]+$/)[0];
+			console.info(file_name + ': ' + sum_size + ' bytes.');
+			try {
+				node_fs.writeFileSync(file_name, contents);
+			} catch (e) {
+				// e.g., read-only. testing now?
+				console.error(e);
+			}
 
 			if (typeof callback === 'function')
-				callback(update_script_name);
+				callback(file_name);
 		});
 	})
 	//
@@ -49,63 +55,96 @@ function download_update_tool(update_script_url, callback) {
 		// network error?
 		// console.error(e);
 		throw e;
+		if (typeof callback === 'function')
+			callback(null, e);
 	});
 }
 
-function install_npm(package_name, message, for_development) {
-	try {
-		require(package_name);
-	} catch (e) {
-		// e.code: 'MODULE_NOT_FOUND'
-		// console.error(e);
-
-		show_info(message || ('安裝'
-		// for development purpose
-		+ (for_development ? '開發時' : '執行時')
-		//
-		+ '需要用到的組件 [' + package_name + ']...'));
-		if (!node_fs.existsSync('node_modules'))
-			node_fs.mkdirSync('node_modules');
-		require('child_process').execSync('npm install '
-		// https://github.com/kanasimi/work_crawler/issues/104
-		// https://docs.npmjs.com/cli/install
-		// npm install electron --save-dev
-		// sudo npm install -g electron --unsafe-perm=true --allow-root
-		+ (for_development ? '--save-dev ' : '') + package_name + '@latest', {
-			stdio : 'inherit'
+function fetch_url_promise(url) {
+	return new Promise(function(resolve, reject) {
+		fetch_url(url, function(file_name, error) {
+			if (error)
+				reject(error);
+			else
+				resolve(file_name);
 		});
-	}
+	});
 }
 
-function update_components(update_script_name) {
-	var executing_at_tool_directory = node_fs
-			.existsSync('work_crawler_loder.js'), updater = require('./'
-			+ update_script_name);
+/**
+ * <code>
+ curl -O https://raw.githubusercontent.com/kanasimi/work_crawler/master/work_crawler.updater.js
+ * </code>
+ */
+function download_update_tool(update_script_url, callback) {
+	show_info('下載 ' + repository + ' 更新工具...');
+	fetch_url(update_script_url, callback);
+}
 
-	show_info('下載並更新 CeJS 線上小說漫畫下載工具...');
+// ----------------------------------------------------------------------------
+
+download_update_tool(update_script_url, function(update_script_name, error) {
+	update_CeJS(update_script_name, update_finished);
+});
+
+var latest_version_file, executing_at_tool_directory;
+function update_CeJS(update_script_name, callback) {
+	executing_at_tool_directory = node_fs.existsSync('work_crawler_loader.js');
+	// require('./gh-updater');
+	updater = require('./' + update_script_name);
+
+	show_info('下載並更新 CeJS 網路小說漫畫下載工具...');
 	updater.update('kanasimi/work_crawler', executing_at_tool_directory
 	// 解開到當前目錄下。
-	? '.' : '', function() {
+	? '.' : '', function(version_data) {
+		latest_version_file = version_data.latest_version_file;
+
 		if (executing_at_tool_directory) {
-			// console.log('似乎在 CeJS 線上小說漫畫下載工具的工作目錄下，直接執行升級工具。');
+			// console.log('似乎在 CeJS 網路小說漫畫下載工具的工作目錄下，直接執行升級工具。');
 			// console.log(process.cwd());
 		} else {
 			process.chdir('work_crawler-master');
 		}
 
-		show_info('下載並更新 Colorless echo JavaScript kit 組件...');
+		show_info('下載並更新 Colorless echo JavaScript kit (CeJS) 組件...');
 		updater.update(null, null, function() {
-			// @see "dependencies" @ package.json
-			// 下載並更新本工具需要用到的組件 gh-updater...
-			install_npm('gh-updater');
-			// 配置圖形使用者介面。
-			install_npm('electron', '下載並更新圖形介面需要用到的組件 electron...', true);
-			// install_npm('electron-builder');
-			install_npm('electron-updater');
-
-			node_fs.chmodSync('start_gui_electron.sh', '0755');
-
-			show_info('CeJS 線上小說漫畫下載工具 更新完畢.');
+			update_dependencies();
+			callback();
+		}, {
+			fetch_opencc : true
 		});
 	});
+}
+
+function update_dependencies() {
+	var package_data = JSON.parse(node_fs.readFileSync('package.json'));
+
+	// 配置圖形使用者介面。
+	updater.update_package('electron', {
+		message : '下載並更新圖形介面需要用到的組件 electron...',
+		development : true,
+		// 當 electron 正執行時，npm install, npm update
+		// 會出現 EBUSY: resource busy or locked 的問題。
+		skip_installed : true
+	});
+
+	// update other dependent components listed in package_data.dependencies
+	for ( var package_name in package_data.dependencies) {
+		if (package_name === 'cejs') {
+			// 已在 update_CeJS() 安裝過了。
+			continue;
+		}
+		// npm install electron-builder
+		updater.update_package(package_name);
+	}
+
+	node_fs.chmodSync('start_gui_electron.sh', '0755');
+	if (!executing_at_tool_directory) {
+		// 避免第一次執行時檢查更新。
+		node_fs.copyFileSync('../' + latest_version_file, latest_version_file);
+	}
+}
+
+function update_finished() {
+	show_info('CeJS 網路小說漫畫下載工具 更新完畢.');
 }

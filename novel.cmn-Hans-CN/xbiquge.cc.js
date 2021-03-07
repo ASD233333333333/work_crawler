@@ -4,11 +4,11 @@
 
 'use strict';
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
-CeL.run('application.net.work_crawler.PTCMS');
+CeL.run('application.net.work_crawler.sites.PTCMS');
 
 // ----------------------------------------------------------------------------
 
@@ -18,40 +18,7 @@ var crawler = CeL.PTCMS({
 
 	// 解析 作品名稱 → 作品id get_work()
 	search_URL : 'modules/article/search.php?searchkey=',
-	parse_search_result : function(html, get_label) {
-		// console.log(html);
-		var matched = html
-				.match(/og:url" content="[^<>"]+?\/(?:\d+_)?(\d+)\/"/);
-		if (matched) {
-			return [ [ +matched[1] ],
-					[ get_label(html.between('og:title" content="', '"')) ] ];
-		}
-
-		var id_list = [], id_data = [];
-		html.each_between('<li>', '</li>', function(text) {
-			matched = text.match(
-			/**
-			 * <code>
-
-			// biquge.js:
-			<span class="s2"><a href="https://www.xs.la/211_211278/" target="_blank">
-			万古剑神</a>
-			</span>
-
-			// xbiquge.js:
-			<span class="s2"><a href="http://www.xbiquge.cc/book/24276/">元尊</a></span>
-
-			</code>
-			 */
-			/<a href="[^<>"]+?\/(?:\d+_)?(\d+)\/"[^<>]*>([\s\S]+?)<\/a>/);
-			// console.log([ text, matched ]);
-			if (matched) {
-				id_list.push(+matched[1]);
-				id_data.push(get_label(matched[2]));
-			}
-		});
-		return [ id_list, id_data ];
-	},
+	parse_search_result : 'biquge',
 
 	// 取得作品的章節資料。 get_work_data()
 	work_URL : function(work_id) {
@@ -60,6 +27,21 @@ var crawler = CeL.PTCMS({
 	// 取得包含章節列表的文字範圍。
 	get_chapter_list_contents : function(html) {
 		return html.between('<div id="list">', '</div>');
+	},
+	// 去掉前後網站廣告。
+	remove_ads : function(text) {
+		// 去掉前後網站廣告。
+		text = text.replace(
+		// 笔趣阁 www.xbiquge.cc，最快更新不朽凡人最新章节！<br><br>
+		// 笔趣阁 www.xbiquge.cc，最快更新凡人修仙传 ！<br><br>
+		/^[\s\n]*笔趣阁.+?最快更新.+?！(?:<br>)+/g, '').replace(
+		// 天才壹秒記住『愛♂去÷小?說→網』，為您提供精彩小說閱讀。<br />
+		/^[^<>]+提供精彩小說閱讀。<br[^<>]*>/g, '').replace(
+		// 天才壹秒記住『愛♂去÷小?說→網』，為您提供精彩小說閱讀。<br />
+		/【愛.去.小.說.網[^【】]{5,20}】/g, '');
+
+		// console.log(text);
+		return text;
 	}
 });
 

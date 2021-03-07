@@ -4,7 +4,7 @@
 
 'use strict';
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
@@ -23,7 +23,7 @@ var crawler = new CeL.work_crawler({
 	// allow .jpg without EOI mark.
 	// allow_EOI_error : true,
 	// 當圖像檔案過小，或是被偵測出非圖像(如不具有EOI)時，依舊強制儲存檔案。
-	// skip_error : true,
+	skip_error : true,
 
 	// 解析 作品名稱 → 作品id get_work()
 	search_URL : function(work_title, get_label) {
@@ -32,7 +32,7 @@ var crawler = new CeL.work_crawler({
 	},
 	parse_search_result : function(html, get_label) {
 		// console.log(html);
-		html = JSON.parse(html).data.data;
+		html = JSON.parse(html.trim()).data.data;
 		return [ html, html ];
 	},
 	id_of_search_result : 'comic_id',
@@ -44,7 +44,8 @@ var crawler = new CeL.work_crawler({
 				+ '&_request_from=pc';
 	},
 	parse_work_data : function(html, get_label, extract_work_data) {
-		var work_data = JSON.parse(html).data;
+		// .trim(): 去除不可見的空白字元。
+		var work_data = JSON.parse(html.trim()).data;
 		// console.log(work_data);
 		Object.assign(work_data, {
 			// 必要屬性：須配合網站平台更改。
@@ -77,9 +78,9 @@ var crawler = new CeL.work_crawler({
 	},
 
 	// 取得每一個章節的各個影像內容資料。 get_chapter_data()
-	parse_chapter_data : function(html, work_data, get_label) {
+	parse_chapter_data : function(html, work_data, get_label, chapter_NO) {
 		// console.log(html);
-		var chapter_data = JSON.parse(html).data, site_ver = 'site_ver='
+		var chapter_data = JSON.parse(html.trim()).data, site_ver = 'site_ver='
 				+ chapter_data.site_ver;
 
 		// console.log(chapter_data);
@@ -87,6 +88,36 @@ var crawler = new CeL.work_crawler({
 		// 本章为付费章节
 		&& !chapter_data.is_allow_read.is_chapter_read) {
 			chapter_data.limited = true;
+			return;
+		}
+
+		if (Array.isArray(chapter_data.json_content)
+		// 本章为抢先看章节: "json_content":[]
+		&& chapter_data.json_content.length === 0) {
+			var time = chapter_data.chapter.charge_end_time * 1000;
+			if (time > Date.now()) {
+				CeL.info([ this.id + ':', {
+					T : [ '§%1《%2》之後必須等到 %3  才能閱讀。跳過餘下的章節。',
+					//
+					chapter_NO + '/' + work_data.chapter_count,
+					//
+					chapter_data.chapter.chapter_name,
+					//
+					(new Date(time)).format('%Y/%m/%d %H:%M') ]
+				} ]);
+				work_data.chapter_count = chapter_NO - 1;
+				return;
+			}
+		}
+
+		if (chapter_data.json_content.page.length === 1
+		//
+		&& !chapter_data.json_content.page[0].newImgUrl
+		//
+		&& chapter_data.json_content.page[0].mobileImgUrl) {
+			CeL.warn([ this.id + ':', {
+				T : [ '《%1》為會員專屬作品，必須充值後才能閱讀！', work_data.title ]
+			} ]);
 			return;
 		}
 

@@ -1,14 +1,16 @@
 ﻿/**
  * 批量下載 新笔趣阁 小说 的工具。 Download xbiquge novels.
+ * 
+ * @see x81zw
  */
 
 'use strict';
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
-CeL.run('application.net.work_crawler.PTCMS');
+CeL.run('application.net.work_crawler.sites.PTCMS');
 
 // ----------------------------------------------------------------------------
 

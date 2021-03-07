@@ -12,25 +12,48 @@
 var node_electron = require('electron'),
 // const: work_crawler/
 base_directory = '../',
-// const
+// const. 主要以搜尋時使用的語言來區分，而非作品出產國。
 site_type_description = {
+	'comic.cmn-Hant-TW' : '繁體字漫畫',
 	'comic.cmn-Hans-CN' : '中国内地漫画',
 	'comic.ja-JP' : '日本語のウェブコミック',
 	'comic.en-US' : 'English webcomics',
 	'novel.cmn-Hans-CN' : '中国内地小说',
 	'novel.ja-JP' : '日本語のオンライン小説'
 },
-// const
+// const 縱使語言不同，也應該採用不同的 site id。否則檔案會存放到同一個目錄底下，可能造成檔案錯亂。
 download_sites_set = {
+	'comic.cmn-Hant-TW' : {
+		'999comics' : '99漫畫網',
+
+		manhuagui_tw : '繁體版漫畫櫃',
+
+		comicbus : '無限動漫',
+
+		cartoonmad : '動漫狂',
+
+		dogemanga : '漫畫狗',
+
+		dmeden : '動漫伊甸園',
+
+		'18comic' : '禁漫天堂',
+
+		comico : 'comico',
+
+		webtoon : 'WEBTOON',
+
+		toomics_tc : 'Toomics 玩漫'
+	},
 	'comic.cmn-Hans-CN' : {
 		qq : '腾讯漫画',
-		'163' : '网易漫画',
+		// '163' : '网易漫画',
 		u17 : '有妖气',
 		zymk : '知音漫客',
 		dajiaochong : '大角虫漫画',
 		kuaikan : '快看漫画',
 		weibo : '微博动漫',
 		bilibili : '哔哩哔哩漫画',
+		buka : '布卡漫画',
 		sfacg : 'SF漫画',
 
 		katui : '卡推漫画',
@@ -41,7 +64,12 @@ download_sites_set = {
 		mh160 : '漫画160',
 		nokiacn : '乙女漫画',
 		iqg365 : '365漫画网',
-		'360taofu' : '360漫画',
+		emw : '一漫网',
+		aikanmh : '爱看漫画',
+		wuyouhui : '友绘漫画网',
+		'88bag' : '188漫画网',
+		// '76' : '76漫画',
+		'517' : '我要去漫画',
 		dagu : '大古漫画网',
 		manhuadb : '漫画DB',
 
@@ -50,64 +78,88 @@ download_sites_set = {
 
 		dmzj : '动漫之家',
 		dm5 : '动漫屋',
-		tohomh : '土豪漫画',
+		'1kkk' : '漫画人',
+		// tohomh : '土豪漫画',
+		// ikmhw : '爱看漫画网',
+		r2hm : '无双漫画',
+		hanmanwo : '韩漫窝',
+		youma : '有码漫画',
+		mymhh : '梦游漫画',
 
-		manhuatai : '漫画台',
+		// manhuatai : '漫画台',
 
 		manhuagui : '看漫画/漫画柜',
-		manhuagui_tw : '繁體版漫畫櫃',
 		gufengmh : '古风漫画网',
+		duoduomh : '多多漫画',
 		'36mh' : '36漫画网',
+		manhuaniu : '漫画牛',
+		// mhkan: deprecated
+		// mhkan : '漫画看',
+		mh1234 : '漫画1234',
 		'930mh' : '亲亲漫画网',
+		'50mh' : '50漫画网',
 
-		omanhua : '哦漫画',
+		// omanhua : '哦漫画',
 
 		hhcool : '汗汗酷漫',
-		dmeden : '動漫伊甸園',
+
+		// fed 系統
+		ohmanhua : 'Oh漫画',
 
 		migudm : '咪咕圈圈',
 
-		comico : 'comico',
+		dongman : '咚漫',
 
-		webtoon : 'WEBTOON',
-		dongman : '咚漫'
-
-	// mrblue : 'Mr.Blue (不再維護)'
+		toomics_sc : 'Toomics 玩漫'
 	},
 	'comic.ja-JP' : {
+		nico_seiga : 'ニコニコ静画',
 		ComicWalker : 'ComicWalker',
-		youngaceup : 'ヤングエースUP',
 
-		AlphaPolis_manga : 'アルファポリス',
+		youngaceup : 'ヤングエースUP',
+		// TYPE-MOONコミックエース
+		tmca : 'TYPE-MOONエース',
+
+		AlphaPolis_official_manga : 'アルファポリス 公式',
+		AlphaPolis_user_manga : 'アルファポリス 投稿',
 
 		moae : 'モアイ',
 
 		pixivcomic : 'pixivコミック',
-		OVERLAP : 'OVERLAP',
-		MAGCOMI : 'MAGCOMI',
+		// OVERLAP : 'OVERLAP',
+		// MAGCOMI : 'MAGCOMI',
 		cycomi : 'サイコミ',
 
-		XOY : 'WEBTOON ja',
+		// XOY : 'WEBTOON ja',
 
 		comico_jp : 'コミコ',
 		comico_jp_plus : 'オトナ限定 コミコ'
 	},
 	'comic.en-US' : {
-		webtoon : 'WEBTOON en',
+		webtoon_en : 'WEBTOON en',
 
-		mangamew : 'Manga Mew (不再維護)',
-		manganew : 'Manga New (不再維護)',
+		toomics_en : 'Toomics',
 
-		Rocaca : 'rocaca (不再維護)'
+	// 不再維護
+	// mangamew : 'Manga Mew',
+	// manganew : 'Manga New',
+
+	// Rocaca : [ 'rocaca (', {
+	// T : '不再維護'
+	// }, ')' ]
+
+	// mrblue : 'Mr.Blue'
 	},
 	'novel.cmn-Hans-CN' : {
-		ck101 : '卡提諾論壇 小說頻道',
+		// ck101 : '卡提諾論壇 小說頻道',
 
 		qidian : '起点中文网',
 
 		// PTCMS
 		'23us' : '顶点小说',
-		'81xsw' : '八一中文网',
+		booktxt : '顶点小说 booktxt',
+		zwdu : '八一中文网',
+		x81zw : '新八一中文网',
 		'88dus' : '八八读书网',
 		'630book' : '恋上你看书网',
 		biquge : '笔趣阁',
@@ -120,61 +172,69 @@ download_sites_set = {
 		zhuishubang : '追书帮',
 
 		daocaoren : '稻草人书屋',
+		'51shucheng' : '无忧书城',
 		luoxia : '落霞小说网',
 		kanunu : '努努书坊',
 		piaotian : '飘天文学'
 	},
 	'novel.ja-JP' : {
 		AlphaPolis : 'アルファポリス',
+
 		Hameln : 'ハーメルン',
+
 		kakuyomu : 'カクヨム',
+
+		yomou : '小説を読もう！',
 		noc : 'ノクターンノベルズ',
-		yomou : '小説を読もう！'
+		mid : 'ミッドナイトノベルズ',
+		mnlt : 'ムーンライトノベルズ'
 	}
 },
+// 所有網站都使用相同值的下載選項。
+// will save at default_configuration_file_name
+// 請注意：這些設定將會被存在 default_configuration_file_name。因此若將這個檔案刪除，則設定將會被重設！
+global_options = {
+	preserve_download_work_layer : 'boolean',
+	play_finished_sound : 'boolean',
+	archive_program_path : 'string:fso_file',
+	CSS_theme : 'string',
+	// fso:directory
+	data_directory : 'string:fso_directory'
+},
+/** 改變下載選項後額外需要做的處理 */
+options_post_processor = Object.create(null),
 // const 下載選項。有順序。常用的排前面。
 // @see CeL.application.net.work_crawler
-download_options_set = {
-	// 亮著的原因可能是因為設定成了 'changed'，此時請取消勾選後重新勾選可強制從頭檢測。
-	recheck : '從頭檢測所有作品之所有章節與所有圖片。',
-	start_chapter : '將開始/接續下載的章節編號。對已下載過的章節，必須配合 .recheck。',
-	chapter_filter : '篩選想要下載的章節標題關鍵字。例如"單行本"。',
-	// 重新擷取用的相關操作設定。
-	// 漫畫不需要重建電子書檔案
-	regenerate : '章節數量無變化時依舊利用 cache 重建資料(如下載小說時不重新取得網頁資料，只重建ebook檔)。',
-	reget_chapter : '重新取得每個所檢測的章節內容。',
-
-	archive_images : '漫畫下載完畢後壓縮圖像檔案。',
-
-	// 容許錯誤用的相關操作設定。
-	MAX_ERROR_RETRY : '出錯時重新嘗試的次數。',
-	allow_EOI_error : '當圖像不存在 EOI (end of image) 標記，或是被偵測出非圖像時，依舊強制儲存檔案。',
-	MIN_LENGTH : '最小容許圖案檔案大小 (bytes)。若值太小，傳輸到一半壞掉的圖片可能被當作正常圖片而不會出現錯誤。',
-	skip_error : '忽略/跳過圖像錯誤。',
-	skip_chapter_data_error : '當無法取得 chapter 資料時，直接嘗試下一章節。',
-
-	one_by_one : '循序逐個、一個個下載圖像。僅對漫畫有用，對小說無用。小說章節皆為逐個下載。',
-	// overwrite_old_file : '當新獲取的檔案比較大時，覆寫舊的檔案。',
-	main_directory : '下載檔案儲存目錄路徑。圖片檔+紀錄檔下載位置。',
-	user_agent : '瀏覽器識別。運行前後始終維持相同的瀏覽器識別，應該就不會影響到下載。',
-
-	write_chapter_metadata : '將每個章節壓縮檔的資訊寫入同名(添加.json延伸檔名)的JSON檔，方便其他工具匯入用。',
-	write_image_metadata : '將每個圖像的資訊寫入同名(添加.json延伸檔名)的JSON檔，方便其他工具匯入用。',
-
-	preserve_download_work_layer : '下載完成後保留下載進度條'
-},
-// const `global.data_directory`/`default_configuration_file_name`
+download_options_set = Object.create(null),
+// const `global.original_data_directory`/`default_configuration_file_name`
+// 本設定檔案會放在 `global.original_data_directory` 這個目錄下。假如另外更動了
+// `global.data_directory`，那麼所有的作品資料以及圖片都會放在 `global.data_directory`
+// 下面，此時本檔案和作品資料就會放在不同的目錄下。
 default_configuration_file_name = 'work_crawler.configuration.json',
 //
-theme_list = 'light|dark'.split('|');
+theme_hash = {
+	// 🔆
+	light : '☀️',
+	// 🌙
+	dark : '🌃'
+}, theme_list = Object.keys(theme_hash);
+
+var DEFAULT_THEME_TEXT = 'default', default_theme_name;
+theme_list.push(DEFAULT_THEME_TEXT);
+
+'data_directory,recheck,start_chapter_NO,start_chapter_title,chapter_filter,regenerate,reget_chapter,search_again,cache_title_to_id,acceptable_types,archive_images,images_archive_extension,MAX_ERROR_RETRY,allow_EOI_error,MIN_LENGTH,timeout,skip_error,skip_chapter_data_error,one_by_one,chapter_time_interval,main_directory,vertical_writing,convert_to_language,user_agent,proxy,cookie,write_chapter_metadata,write_image_metadata,preserve_download_work_layer,play_finished_sound,archive_program_path'
+// @see work_crawler/resource/locale of work_crawler - locale.csv
+.split(',').forEach(function(item) {
+	download_options_set[item] = 'download_options.' + item;
+});
 
 var save_config_this_time = true;
 
 var site_used, default_configuration, download_site_nodes = [], download_options_nodes = {},
-// 為 electron-builder 📦安裝包
+// 為 electron-builder 📦安裝包/發行版
 is_installation_package,
 // 會儲存到 crawler.preference.crawler_configuration 的選項。
-save_to_preference = Object.assign({}, download_options_set), preserve_download_work_layer,
+save_to_preference = Object.assign({}, download_options_set),
 // Windows 10: Windows NT 10.0; Win64; x64
 old_Unicode_support = navigator.appVersion.match(/Windows NT (\d+(?:\.\d))/);
 if (old_Unicode_support) {
@@ -185,7 +245,29 @@ if (old_Unicode_support) {
 // save_to_preference 不可包含 main_directory，因為已來不及，且會二次改變 main_directory。
 delete save_to_preference.main_directory;
 
-require(base_directory + 'work_crawler_loder.js');
+require(base_directory + 'work_crawler_loader.js');
+
+// declaration for gettext(). @see setup_language_menu()
+var _;
+// 設定國際性語言 language force convert. @see setup_language_menu()
+var force_convert = [ 'en' ];
+
+// @see setup_language_menu()
+// for i18n: define gettext() user domain resources location.
+// gettext() will auto load (CeL.env.domain_location + language + '.js').
+// e.g., resources/cmn-Hant-TW.js, resources/ja-JP.js
+CeL.env.domain_location = function() {
+	is_installation_package = CeL.is_installation_package();
+
+	return CeL.env.domain_location
+	// CeL.env.script_base_path: 形如 ...'/work_crawler/gui_electron/'
+	= CeL.env.script_base_path.replace(/gui_electron[\\\/]$/, '')
+	// resources/
+	+ CeL.env.resources_directory_name + '/';
+	// 在安裝包中， `process.cwd()` 可能為
+	// C:\Users\user\AppData\Local\Programs\work_crawler
+// 因此 CeL.env.domain_location 必須提供完整路徑。
+};
 
 CeL.run([ 'application.debug.log', 'interact.DOM' ], initializer);
 
@@ -198,33 +280,143 @@ function check_max_logs() {
 		remove : show
 	});
 	this.innerHTML = _(CeL.DOM_data(this).gettext = show ? '限制訊息行數' : '不限制訊息行數');
-	CeL.node_value(this.parentNode.firstChild, show ? '✂️' : '');
+	// .children[0] (<span>) === .firstElementChild
+	// !== .firstChild (maybe #text)
+	CeL.node_value(this.parentNode.children[0], show ? '✂️' : '');
 }
-
-// for i18n: define gettext() user domain resource location.
-// gettext() will auto load (CeL.env.domain_location + language + '.js').
-// e.g., resource/cmn-Hant-TW.js, resource/ja-JP.js
-CeL.env.domain_location = function() {
-	is_installation_package = CeL.is_installation_package();
-
-	return CeL.env.domain_location
-	// CeL.env.script_base_path: 形如 ...'/work_crawler/gui_electron/'
-	= CeL.env.script_base_path.replace(/gui_electron[\\\/]$/, '')
-	// resource/
-	+ CeL.env.resource_directory_name + '/';
-	// 在安裝包中， `process.cwd()` 可能為
-	// C:\Users\user\AppData\Local\Programs\work_crawler
-// 因此 CeL.env.domain_location 必須提供完整路徑。
-};
-
-// declaration for gettext()
-var _;
-// language force convert
-var force_convert = 'en';
 
 // initialization
 function initializer() {
+	// 將更新程序放在一開始，確保一定會執行更新程序，避免後面出現錯誤時不作更新。
+	// 延遲檢測更新，避免 hang 住。
+	setTimeout(check_update, 80);
 
+	// --------------------------------
+
+	setup_language_menu();
+
+	if (!global.data_directory) {
+		global.data_directory = CeL.determin_download_directory();
+	}
+	/** const */
+	global.original_data_directory = data_directory;
+
+	setup_initial_messages();
+
+	// --------------------------------
+
+	// read default configuration
+	default_configuration = CeL.get_JSON(original_data_directory
+			+ default_configuration_file_name)
+			|| Object.create(null);
+
+	if (!default_configuration.archive_program_type) {
+		// '7z'
+		default_configuration.archive_program_type = CeL.archive.default_program_type;
+	}
+	if (default_configuration.archive_program_path && CeL.storage.file_exists(
+	// .slice(1, -1): e.g., '"C:\\Program Files\\7-Zip\\7z.exe"'
+	// → 'C:\\Program Files\\7-Zip\\7z.exe'
+	default_configuration.archive_program_path.slice(1, -1))) {
+		// export to CeL.archive
+		CeL.archive.executable_file_path[default_configuration.archive_program_type] = default_configuration.archive_program_path;
+	} else {
+		default_configuration.archive_program_path = CeL.archive.executable_file_path[default_configuration.archive_program_type];
+	}
+
+	change_data_directory(default_configuration.data_directory
+			|| data_directory);
+
+	// --------------------------------
+
+	setup_theme_selecter();
+
+	// --------------------------------
+
+	setup_download_sites();
+
+	// --------------------------------
+
+	var user_agent = navigator.userAgent.replace(
+			/(?:work_crawler|Electron)[\/.\d ]*/ig, '');
+	if (user_agent)
+		CeL.work_crawler.prototype.user_agent = user_agent;
+
+	Object.assign(CeL.work_crawler.prototype, {
+		after_download_chapter : after_download_chapter,
+		onwarning : onerror,
+		onerror : onerror
+	});
+
+	// --------------------------------
+
+	setup_download_options();
+
+	// --------------------------------
+
+	set_click_trigger('favorites_trigger', 'favorite_list');
+
+	set_click_trigger('search_results_trigger', 'search_results');
+
+	set_click_trigger('download_job_trigger', 'download_job_queue');
+
+	// --------------------------------
+
+	setup_ipcRenderer();
+
+	// https://developer.mozilla.org/en-US/docs/Web/API/Notification/permission
+	// https://electronjs.org/docs/tutorial/desktop-environment-integration
+	// https://electronjs.org/docs/api/notification
+	if (true || !window.Notification) {
+	} else if (Notification.permission === 'granted') {
+	} else if (Notification.permission !== 'denied') {
+		// assert: Notification.permission === 'default' ||
+		// Notification.permission === 'undefined'
+		Notification.requestPermission(function(permission) {
+			if (permission === 'granted') {
+				var notification = new Notification('');
+			}
+		});
+	}
+
+	process.title = _('CeJS 網路小說漫畫下載工具');
+
+	// --------------------------------
+
+	setup_DOM_events();
+
+	// CeL.set_debug();
+}
+
+// ------------------------------------
+
+function on_menu_changed() {
+	if (+_('untranslated message count') > 0) {
+		CeL.info({
+			T : [ '現有%1條%2訊息尚未翻譯，歡迎您一同參與翻譯訊息！',
+					_('untranslated message count'),
+					// CeL.gettext.get_alias(CeL.gettext.default_domain)
+					_('using language') ]
+		});
+	}
+}
+
+function setup_language_menu() {
+	_ = CeL.gettext;
+
+	_.create_menu('language_menu', [ 'TW', 'CN', 'ja', 'en', 'pt', 'ko' ],
+	// 預設介面語言繁體中文+...
+	on_menu_changed);
+
+	// translate all nodes to show in specified language (or default domain).
+	_.translate_nodes();
+
+	// --------------------------------
+
+	_.load_domain(force_convert[0]);
+}
+
+function setup_initial_messages() {
 	CeL.Log.set_board('log_panel');
 	// CeL.set_debug();
 	// 設置完成
@@ -239,30 +431,22 @@ function initializer() {
 		}
 	}, 'max_logs');
 
-	CeL.debug('當前目錄: ' + CeL.storage.working_directory(), 1);
-	CeL.debug('環境變數: ' + JSON.stringify(process.env), 1);
+	CeL.debug({
+		T : [ 'Working directory: %1', CeL.storage.working_directory() ]
+	}, 1);
+	CeL.debug({
+		T : [ '所有環境變數：%1', JSON.stringify(process.env) ]
+	}, 1);
 
 	// --------------------------------
 
-	_ = CeL.gettext;
-
-	_.create_menu('language_menu', [ 'TW', 'CN', 'ja', 'en', 'ko' ],
-	// 預設介面語言繁體中文+...
-	function() {
-	});
-
-	// translate all nodes to show in specified language (or default domain).
-	_.translate_nodes();
-
-	// --------------------------------
-
-	_.load_domain(force_convert);
-	if (!global.data_directory) {
-		global.data_directory = CeL.determin_download_directory();
-	}
 	CeL.info({
-		T : [ 'Default download location: %1', global.data_directory ]
+		// Default download location
+		T : [ 'Default download directory: %1', data_directory ]
 	});
+
+	// --------------------------------
+
 	CeL.info({
 		// 🚧 https://weblate.org/zh-hant/
 		span : [ {
@@ -274,28 +458,117 @@ function initializer() {
 				force_convert : force_convert
 			},
 			href : 'https://github.com/kanasimi/work_crawler/issues/185',
-			onclick : open_external
+			onclick : open_URL
 		}, {
 			T : '歡迎與我們一同翻譯介面文字！#3',
 			force_convert : force_convert
 		} ]
 	});
-	// read default configuration
-	default_configuration = CeL.get_JSON(global.data_directory
-			+ default_configuration_file_name)
-			|| CeL.null_Object();
+	on_menu_changed();
 
 	// --------------------------------
 
-	select_theme(default_configuration.CSS_theme);
+	if (CeL.platform.is_Windows()) {
+		CeL.new_node([ {
+			a : {
+				T : '複製貼上快速鍵'
+			},
+			href : 'https://en.wikipedia.org/wiki/'
+			//
+			+ 'Cut,_copy,_and_paste#Common_keyboard_shortcuts',
+			onclick : open_URL
+		}, ' - ', {
+			T : '複製選取的項目：'
+		}, {
+			kbd : 'Ctrl+C'
+		}, ' ', {
+			span : ' | ',
+			S : "color: blue;"
+		}, {
+			T : '貼上項目：'
+		}, {
+			kbd : 'Ctrl+V'
+		} ], 'small_tips');
+	}
+}
+
+function setup_ipcRenderer() {
+	'debug,log,info,warn,error'.split(',').forEach(function(log_type) {
+		node_electron.ipcRenderer
+		//
+		.on('send_message_' + log_type, function(event, message) {
+			CeL[log_type]({
+				T : message
+			});
+		});
+	});
+	node_electron.ipcRenderer.on('send_message_isPackaged', function(event,
+			isPackaged) {
+		is_installation_package = isPackaged;
+	});
+
+	node_electron.ipcRenderer.send('send_message', 'did-finish-load');
+	node_electron.ipcRenderer.send('send_message', 'check-for-updates');
+
+	node_electron.ipcRenderer.on('open_dialog', recerive_dialog_result);
+}
+
+// ------------------------------------
+
+// Select CSS theme
+function select_theme(theme, no_save) {
+	if (typeof theme !== 'string') {
+		theme = CeL.DOM_data(this);
+		theme = theme && theme.theme_label;
+	}
+	if (!theme_list.includes(theme)) {
+		CeL.warn([ 'select_theme: ', {
+			T : [ 'Invalid theme name: %1', theme ]
+		} ]);
+		return;
+	}
+
+	var theme_used = theme === DEFAULT_THEME_TEXT ? default_theme_name : theme;
+	theme_list.forEach(function(theme_name) {
+		CeL.set_class(document.body, theme_name, {
+			remove : theme_name !== theme_used
+		});
+	});
+
+	var node_list = document.querySelectorAll('#select_theme_panel .button');
+	node_list.forEach(function(node) {
+		CeL.set_class(node, 'selected', {
+			remove : theme !== CeL.DOM_data(node).theme_label
+		});
+	});
+
+	if (!no_save) {
+		default_configuration.CSS_theme = theme;
+		save_default_configuration();
+	}
+}
+
+function setup_theme_selecter() {
+	if (CeL.DOM.navigator_theme) {
+		default_theme_name = CeL.DOM.navigator_theme;
+	}
 
 	var theme_nodes = [ {
 		T : '布景主題：'
 	} ];
 	theme_list.forEach(function(theme_name) {
+		var _theme_name = theme_name === DEFAULT_THEME_TEXT
+		//
+		? default_theme_name : theme_name;
 		theme_nodes.push({
-			T : theme_name,
-			C : theme_name,
+			span : [ theme_hash[_theme_name] || '', {
+				T : theme_name + ' theme',
+				force_convert : force_convert
+			} ],
+			C : [ _theme_name, 'button' ],
+			D : {
+				theme_label : theme_name
+			},
 			onclick : select_theme
 		});
 	});
@@ -303,20 +576,29 @@ function initializer() {
 	// free
 	theme_nodes = null;
 
-	// --------------------------------
+	// auto-detect navigator theme
+	select_theme(default_configuration.CSS_theme || DEFAULT_THEME_TEXT);
+}
 
+// ------------------------------------
+
+function setup_download_sites() {
 	// 初始化 initialization: download_site_nodes
 	Object.assign(download_site_nodes, {
-		link_of_site : CeL.null_Object(),
-		node_of_id : CeL.null_Object()
+		link_of_site : Object.create(null),
+		node_of_id : Object.create(null)
 	});
 
-	var site_nodes = [];
+	var site_nodes = [], type_icon = {
+		//
+		novel : '📄',
+		comic : '🖼️'
+	};
 	for ( var site_type in download_sites_set) {
 		var label_node = CeL.new_node({
-			div : {
+			div : [ type_icon[site_type.replace(/\..+$/, '')] || '', {
 				T : site_type_description[site_type] || site_type
-			},
+			} ],
 			title : site_type,
 			C : 'site_type_label'
 		}), label_sites = [];
@@ -326,11 +608,12 @@ function initializer() {
 			var site_node = CeL.new_node({
 				span : sites[site_id],
 				C : 'download_sites'
-						+ (old_Unicode_support ? ' old_Unicode_support' : ''),
+						+ (old_Unicode_support ? ' ' + 'old_Unicode_support'
+								: ''),
 				title : site_type + '/' + site_id,
 				onclick : function() {
 					site_used = this.title;
-					language_used = site_used.replace(/\/.+/, '');
+					type_and_language_used = site_used.replace(/\/.+/, '');
 					reset_favorites();
 					reset_site_options();
 				}
@@ -349,116 +632,98 @@ function initializer() {
 		});
 		site_nodes.push(label_node, label_sites);
 		set_click_trigger(label_node, label_sites, function() {
-			language_used = this.title;
+			type_and_language_used = this.title;
 		});
 	}
 	CeL.new_node(site_nodes, 'download_sites_list');
 
 	set_click_trigger('download_sites_trigger', 'download_sites_list');
+}
 
-	// --------------------------------
+// ------------------------------------
 
-	var user_agent = navigator.userAgent.replace(
-			/(?:work_crawler|Electron)[\/.\d ]*/ig, '');
-	if (user_agent)
-		CeL.work_crawler.prototype.user_agent = user_agent;
+// Setup GUI-only options
+function setup_download_options() {
+	var import_arg_hash = CeL.work_crawler.setup_argument_conditions(
+			global_options, true);
 
-	Object.assign(CeL.work_crawler.prototype, {
-		after_download_chapter : after_download_chapter,
-		onwarning : onerror,
-		onerror : onerror
-	});
+	// @seealso function reset_site_options()
 
-	// --------------------------------
+	var options_nodes = [], _force_convert;
+	// 當前僅有繁體中文已具備所有說明。
+	if (force_convert.includes('TW')) {
+		_force_convert = force_convert;
+	} else {
+		_force_convert = force_convert.clone();
+		_force_convert.push('TW');
+	}
 
-	var options_nodes = [];
 	for ( var download_option in download_options_set) {
-		var arg_type_data = CeL.work_crawler.prototype
+		var arg_type_data = import_arg_hash[download_option], input_box = '',
 		//
-		.import_arg_hash[download_option],
-		//
-		arg_types = arg_type_data && Object.keys(arg_type_data).join(),
-		//
-		className = 'download_options', input_box = '';
+		className = 'download_options'
+				+ (arg_type_data && !('boolean' in arg_type_data) ? ' '
+						+ 'non_select' : '');
 
-		if (arg_types === 'number' || arg_types === 'string') {
-			className += ' non_select';
+		if (arg_type_data
+				&& (('number' in arg_type_data) || ('string' in arg_type_data))) {
 			input_box = {
+				// will fill by reset_site_options()
 				input : null,
 				id : download_option + '_input',
-				C : 'type_' + arg_types,
-				type : arg_types,
-				onchange : function() {
-					var crawler = get_crawler();
-					if (!crawler) {
-						return;
-					}
-					var key = this.parentNode.title;
-					if (this.type === 'number') {
-						if (this.value)
-							crawler[key] = +this.value;
-					} else {
-						crawler[key] = this.value;
-					}
-
-					if (key in save_to_preference) {
-						crawler.preference
-						//
-						.crawler_configuration[key] = crawler[key];
-						save_preference(crawler);
-
-					} else if (key === 'main_directory') {
-						if (!default_configuration[crawler.site_id]) {
-							default_configuration[crawler.site_id] = CeL
-									.null_Object();
-						}
-						default_configuration
-						//
-						[crawler.site_id][key] = crawler[key];
-						save_default_configuration();
-					}
-				}
+				C : arg_type_data ? Object.keys(arg_type_data).map(
+						function(type) {
+							return 'type_' + type;
+						}).join(' ') : '',
+				type : arg_type_data && {
+					// date : 'date',
+					// time:'time',
+					// datetime : 'datetime-local',
+					// file : 'file',
+					number : 'number'
+				}[Object.keys(arg_type_data).join()] || 'text',
+				// data_type : arg_type_data &&
+				// Object.keys(arg_type_data).join(),
+				onchange : change_download_option
 			};
+			if (('string' in arg_type_data)
+					&& Array.isArray(arg_type_data.string)
+					&& arg_type_data.string.length === 1
+					&& typeof arg_type_data.string[0] === 'string') {
+				var fso_type = arg_type_data.string[0]
+						.match(/^fso_(file|files|directory|directories)$/);
+				if (fso_type) {
+					fso_type = fso_type[1];
+					// 檔案或目錄的路徑常常較長。
+					input_box.S = 'width: 30em;';
+					input_box = [ input_box, {
+						T : '📂',
+						R : (old_Unicode_support ? '' : '🗁 ')
+						// append dialog
+						+ _('選擇%1路徑', _(fso_type)),
+						fso_type : fso_type,
+						onclick : select_download_options_fso,
+						S : 'cursor: pointer;'
+					} ];
+				}
+			}
 		}
 
 		var option_object = {
 			label : [ {
 				b : download_option
-			}, ':', input_box, download_options_set[download_option],
-			//
-			arg_type_data ? ' ('
-			//
-			+ Object.keys(arg_type_data).map(function(type) {
-				var condition = arg_type_data[type];
-				if (Array.isArray(condition)) {
-					condition = condition.join('; ');
-				} else {
-					condition = JSON.stringify(condition);
-				}
-				return type + (condition ? ': ' + condition : '');
-			}).join(' | ') + ')' : '' ],
+			}, ':', input_box, ' ', {
+				T : download_options_set[download_option],
+				force_convert : _force_convert
+			},
+			// option_type_token() @ work_crawler_loader.js
+			option_type_token(arg_type_data, [ , '#871' ]) ],
 			C : className,
 			title : download_option
 		};
-		if (!input_box) {
-			option_object.onclick = function() {
-				var crawler = get_crawler();
-				if (!crawler) {
-					return;
-				}
-				var key = this.title;
-				crawler[key] = !crawler[key];
-				CeL.set_class(this, 'selected', {
-					remove : !crawler[key]
-				});
-
-				if (key in save_to_preference) {
-					crawler.preference
-					//
-					.crawler_configuration[key] = crawler[key];
-					save_preference(crawler);
-				}
-			};
+		if (!className.includes('non_select')) {
+			// type: 'boolean'
+			option_object.onclick = click_download_option;
 		}
 
 		download_options_nodes[download_option] = CeL.new_node(option_object);
@@ -501,32 +766,206 @@ function initializer() {
 				T : '重設下載選項與最愛作品清單#2',
 				S : 'color: orange;'
 			} : '' ],
-			onclick : function() {
-				var crawler = get_crawler();
-				if (!crawler) {
-					return;
-				}
-				Object.assign(crawler, crawler.default_save_to_preference);
-				crawler.preference.crawler_configuration = CeL.null_Object();
-				// Skip .main_directory
-
-				save_preference(crawler);
-				reset_site_options();
-				CeL.info('已重設下載選項。');
-			},
+			onclick : click_reset_download_option,
 			C : 'button'
 		} ]
 	}, 'download_options_panel'));
+}
 
-	// --------------------------------
+change_download_option.exit = Symbol('exit');
 
-	set_click_trigger('favorites_trigger', 'favorite_list');
+options_post_processor.data_directory = function(value) {
+	if (data_directory) {
+		change_data_directory(value);
+	} else {
+		// recovery
+		this.value = data_directory;
+	}
+	// do not save
+	return change_download_option.exit;
+};
 
-	set_click_trigger('search_results_trigger', 'search_results');
+// 可手動指定7z壓縮工具執行檔的路徑。
+options_post_processor.archive_program_path = function(value) {
+	var path = CeL.archive.remove_fso_path_quote(value);
+	if (path && !CeL.storage.file_exists(path)) {
+		path = null;
+	}
 
-	set_click_trigger('download_job_trigger', 'download_job_queue');
+	if (!path) {
+		// recovery
+		CeL.error('未發現檔案 ' + value + '，回復原值。');
+		this.value = default_configuration.archive_program_path;
+		return change_download_option.exit;
+	}
 
-	// --------------------------------
+	value = CeL.archive.add_fso_path_quote(path);
+	CeL.archive.executable_file_path[default_configuration.archive_program_type] = value;
+	return this.value = value;
+};
+
+function change_download_option() {
+	var key = this.parentNode.title, value = this.value,
+	//
+	type = Object.keys(CeL.set_class(this)).map(function(_class) {
+		_class = _class.match(/^type_(.+)$/);
+		return _class ? _class[1] : '';
+	});
+
+	if (key in options_post_processor) {
+		value = options_post_processor[key].call(this, value);
+		if (value === change_download_option.exit)
+			return;
+	}
+
+	if (key in global_options) {
+		default_configuration[key] = value;
+		save_default_configuration();
+		return;
+	}
+
+	var crawler = get_crawler();
+	if (!crawler) {
+		return;
+	}
+
+	// TODO: parse other values
+	if (type.includes('number') && !isNaN(+value)) {
+		value = +value;
+		if (!isNaN(value))
+			crawler.setup_value(key, value);
+	} else {
+		if ((!type.join('') || type.includes('boolean')
+				&& (value === 'true' || value === 'false'))) {
+			value = value === 'true';
+		} else if (type.includes('string')) {
+			// TODO: verify the value
+		} else {
+			// TODO: verify the value
+		}
+		crawler.setup_value(key, value);
+	}
+	value = crawler[key];
+
+	if (key in save_to_preference) {
+		crawler.preference.crawler_configuration[key] = value;
+		save_preference(crawler);
+
+	} else if (key === 'main_directory') {
+		if (!default_configuration[crawler.site_id]) {
+			default_configuration[crawler.site_id] = Object.create(null);
+		}
+		default_configuration[crawler.site_id][key] = value;
+		save_default_configuration();
+	}
+}
+
+function select_download_options_fso() {
+	var _this = this, fso_type = this.getAttribute('fso_type'),
+	// https://electronjs.org/docs/api/dialog
+	properties = {
+		file : [ 'openFile' ],
+		files : [ 'openFile', 'multiSelections' ],
+		directory : [ 'openDirectory' ],
+		directories : [ 'openDirectory', 'multiSelections' ]
+	}[fso_type]
+	// 警告: 照理來說應該指明到底要什麼類別。
+	|| [ 'openFile', 'openDirectory', 'multiSelections' ];
+
+	open_dialog({
+		properties : properties
+	}, function(fso_path_list) {
+		if (!fso_path_list || fso_path_list.canceled
+				|| !Array.isArray(fso_path_list = fso_path_list.filePaths)) {
+			// assert: fso_path_list === null
+			CeL.log({
+				T : '未選擇檔案或目錄。'
+			});
+			return;
+		}
+
+		// assert: Array.isArray(fso_path_list)
+		if (!fso_type.startsWith('file')) {
+			// assert: 選擇目錄。自動加上最後的目錄分隔符號。
+			fso_path_list = fso_path_list.map(CeL.append_path_separator);
+		}
+		CeL.log([ 'select_download_options_fso: ', {
+			T : [ '選擇了%2的路徑：%1', JSON.stringify(fso_path_list), fso_type ]
+		} ]);
+
+		var input_box = _this.previousElementSibling;
+		CeL.DOM.set_text(input_box, fso_path_list.join('|'));
+		// 有改變才 fire event。
+		input_box.onchange();
+	});
+}
+
+function click_download_option(event) {
+	CeL.DOM.stop_event(event, true);
+
+	var key = this.title, value;
+	if (key in global_options) {
+		value = default_configuration[key] = !default_configuration[key];
+		save_default_configuration();
+
+	} else {
+		var crawler = get_crawler();
+		if (!crawler) {
+			return;
+		}
+		crawler.setup_value(key, !crawler[key]);
+		value = crawler[key];
+
+		if (key in save_to_preference) {
+			crawler.preference.crawler_configuration[key] = value;
+			save_preference(crawler);
+		}
+	}
+
+	CeL.DOM.set_class(this, 'selected', {
+		remove : !value
+	});
+
+	// 即時更改空格內容。
+	// @see function reset_site_options()
+	// download_option + '_input'
+	CeL.DOM.set_text(key + '_input', value || value === 0 ? value : '');
+}
+
+function click_reset_download_option() {
+	var crawler = get_crawler();
+	if (!crawler) {
+		return;
+	}
+	Object.assign(crawler, crawler.default_save_to_preference);
+	crawler.preference.crawler_configuration = Object.create(null);
+	// Skip .main_directory
+
+	save_preference(crawler);
+	reset_site_options();
+	CeL.info('已重設下載選項。');
+}
+
+// ------------------------------------
+
+function setup_DOM_events() {
+	if (false) {
+		document.addEventListener('drop', function(event) {
+			// event.preventDefault();
+			console.log(event);
+		});
+	}
+
+	if (false) {
+		CeL.DOM.add_listener('focus', function(event) {
+			// console.log(event);
+
+			// 當原先沒有東西的時候就自動貼上系統剪貼簿字串內容。
+			if (!CeL.DOM.set_text('input_work_id')) {
+				paste_text();
+			}
+		});
+	}
 
 	CeL.get_element('input_work_id').onkeypress = function(this_event) {
 		if (this_event.keyCode === 13) {
@@ -534,124 +973,310 @@ function initializer() {
 		}
 	};
 
-	if (CeL.platform.is_Windows()) {
-		CeL.new_node([ {
-			a : {
-				T : '複製貼上快速鍵'
-			},
-			href : 'https://en.wikipedia.org/wiki/'
-			//
-			+ 'Cut,_copy,_and_paste#Common_keyboard_shortcuts',
-			onclick : open_external
-		}, ' - ', {
-			T : '複製選取的項目：'
-		}, {
-			kbd : 'Ctrl+C'
-		}, ' ', {
-			span : ' | ',
-			S : "color: blue;"
-		}, {
-			T : '貼上項目：'
-		}, {
-			kbd : 'Ctrl+V'
-		} ], 'small_tips');
-	}
-
-	// https://developer.mozilla.org/en-US/docs/Web/API/Notification/permission
-	// https://electronjs.org/docs/tutorial/desktop-environment-integration
-	// https://electronjs.org/docs/api/notification
-	if (true || !window.Notification) {
-	} else if (Notification.permission === 'granted') {
-	} else if (Notification.permission !== 'denied') {
-		// assert: Notification.permission === 'default' ||
-		// Notification.permission === 'undefined'
-		Notification.requestPermission(function(permission) {
-			if (permission === 'granted') {
-				var notification = new Notification('');
-			}
-		});
-	}
-
-	'debug,log,info,warn,error'.split(',').forEach(function(log_type) {
-		node_electron.ipcRenderer
-		//
-		.on('send_message_' + log_type, function(event, message) {
-			CeL[log_type]({
-				T : message
-			});
-		});
-	});
-	node_electron.ipcRenderer.on('send_message_isPackaged', function(event,
-			isPackaged) {
-		is_installation_package = isPackaged;
-	});
-
-	process.title = _('CeJS 線上小說漫畫下載工具');
-
-	// --------------------------------
-
-	node_electron.ipcRenderer.send('send_message', 'did-finish-load');
-	node_electron.ipcRenderer.send('send_message', 'check-for-updates');
-
 	CeL.get_element('input_work_id').focus();
-
-	// 延遲檢測更新，避免 hang 住。
-	setTimeout(check_update, 80);
-	// CeL.set_debug();
 }
 
 // --------------------------------------------------------------------------------------------------------------------
 
-function set_click_trigger(trigger, panel, callback) {
+function set_panel_height(panel) {
+	panel = CeL.get_element(panel);
+
+	var style = panel.style;
+	// 設定控制面板可改變大小。
+	style.resize = 'vertical';
+	style.overflow = 'auto';
+
+	var max_height = Math.max(200, window.innerHeight - 90);
+	style.height = '';
+	if (panel.offsetHeight > max_height) {
+		style.height = max_height + 'px';
+	}
+}
+
+function set_click_trigger(trigger, target_panel, callback) {
+	trigger = CeL.get_element(trigger);
 	CeL.set_class(trigger, 'trigger');
-	CeL.add_listener('click', function() {
-		CeL.toggle_display(panel);
+	CeL.add_listener('click', function on_click_trigger() {
+		var display = CeL.toggle_display(target_panel);
+		if (display !== 'none') {
+			set_panel_height(target_panel);
+		}
+		CeL.get_element(target_panel).parentElement.style.height = '';
+		set_trigger_icon.call(this, {
+			display : display
+		});
 		if (typeof callback === 'function') {
-			callback.call(trigger, panel);
+			callback.call(this, target_panel);
 		}
 		return false;
 	}, trigger);
+
+	setTimeout(set_trigger_icon.bind(trigger, {
+		initialization : true
+	}));
+}
+
+function icon_of_trigger(trigger) {
+	var icon_node = trigger.firstElementChild;
+	if (icon_node) {
+		var _class = CeL.DOM.set_class(icon_node);
+		if (!_class || !('trigger_icon' in _class))
+			icon_node = null;
+	}
+	return icon_node;
+}
+
+function set_trigger_icon(options) {
+	var trigger = CeL.get_element(this);
+
+	// trigger.children.length
+	var children_count = trigger.childElementCount;
+
+	var icon_node = icon_of_trigger(trigger);
+
+	var need_icon;
+
+	var width = CeL.DOM.get_node_offset(trigger).width;
+	// console.log(trigger);
+	// console.log(width);
+
+	if (options.initialization && width === 0) {
+		// forced show icon for hidden button
+		need_icon = true;
+
+	} else if (children_count === 1) {
+		need_icon = width
+				- (CeL.DOM.get_node_offset(trigger.firstElementChild).width || 0) > 60;
+
+	} else {
+		// assert: children_count === 0
+		// || children_count > 1
+		need_icon = width > (children_count === 0 ? 40 : 200);
+	}
+
+	if (!need_icon) {
+		if (icon_node) {
+			trigger.removeChild(icon_node);
+		}
+		return;
+
+	}
+
+	var expand_now = options.display !== 'none';
+	var icon_text = expand_now ? '📖' : '📕';
+	// click to expand
+	var icon_title = _(expand_now ? 'collapse' : 'expand');
+	if (icon_node) {
+		icon_node.title = icon_title;
+		CeL.DOM.set_text(icon_node, icon_text);
+
+	} else {
+		CeL.new_node({
+			div : icon_text,
+			R : icon_title,
+			C : 'trigger_icon'
+		}, [ trigger, 'first' ]);
+	}
 }
 
 // ----------------------------------------------
 
-function open_external(URL) {
-	node_electron.shell.openExternal(typeof URL === 'string' ? URL : this.href);
+function paste_text() {
+	// https://electronjs.org/docs/api/clipboard
+	var text = require('electron').clipboard.readText();
+	if (text) {
+		// 貼上系統剪貼簿字串內容。
+		CeL.DOM.set_text('input_work_id', text);
+		CeL.get_element('input_work_id').focus();
+	}
+}
+
+function show_fso(fso_path) {
+	try {
+		// 跳轉至目標資料夾的目錄下，而不只標示出資料夾位置。
+		// https://electronjs.org/docs/api/shell
+		if (node_electron.shell.openPath) {
+			// electron 9.0.0 棄用 shell.openItem，並用異步的 shell.openPath 代替。
+			node_electron.shell.openPath(fso_path);
+		} else if (node_electron.shell.openItem) {
+			// electron@7.3.0
+			node_electron.shell.openItem(fso_path);
+		} else {
+			// + select the file.
+			node_electron.shell.showItemInFolder(fso_path);
+		}
+	} catch (e) {
+		CeL.error(String(e) + ': ' + fso_path);
+	}
+
 	return false;
 }
 
+function open_URL(URL) {
+	if (typeof URL !== 'string') {
+		URL = this.href;
+		if (!URL)
+			return false;
+	}
+
+	node_electron.shell.openExternal(URL)
+	// https://electronjs.org/docs/api/shell
+	['catch'](function(error) {
+		CeL.error(String(error) + ': ' + URL);
+	});
+
+	return false;
+}
+
+// TODO: 重設所有網站的下載目錄功能。
+// 改變預設主要下載目錄。
+function change_data_directory(data_directory) {
+	if (!data_directory && original_data_directory) {
+		// recovery: 若全部清空將會重設下載目錄。
+		data_directory = original_data_directory;
+	}
+
+	if (data_directory) {
+		// data_directory 必須以 path separator 作結。
+		data_directory = CeL.append_path_separator(data_directory);
+		var old_data_directory = default_configuration.data_directory;
+		for_all_crawler_loaded(function(site_id) {
+			if (this.main_directory.startsWith(old_data_directory)) {
+				var new_main_directory = this.main_directory.replace(
+						old_data_directory, data_directory);
+				CeL.info({
+					T : [ '同時更改已手動設定下載目錄的網站 %1：%2 → %3', site_id,
+							this.main_directory, new_main_directory ]
+				});
+				this.main_directory = new_main_directory;
+			}
+		});
+
+		if (CeL.directory_is_empty(old_data_directory)) {
+			CeL.warn({
+				T : [ '舊下載目錄 "%1" 為空目錄，將之移除。', old_data_directory ]
+			});
+			CeL.remove_directory(old_data_directory);
+		}
+
+		default_configuration.data_directory = data_directory;
+		// prepare main download directory: create data_directory if needed.
+		// 因為不只是下載時，在編輯最愛列表時也必須寫入到資料目錄中，因此操作完畢就先造出來。
+		CeL.create_directory(data_directory);
+		reset_site_options();
+	}
+
+	// 維護 global.data_directory = default_configuration.data_directory 這兩個值相同。
+	global.data_directory = default_configuration.data_directory;
+	save_default_configuration();
+}
+
 function save_default_configuration() {
-	if (!save_config_this_time)
+	if (!save_config_this_time) {
+		CeL.debug([ 'save_default_configuration: ', {
+			T : '已設定不自動儲存選項設定。'
+		} ], 1);
 		return;
+	}
+
 	// prepare work directory.
-	CeL.create_directory(global.data_directory);
-	CeL.write_file(global.data_directory + default_configuration_file_name,
+	CeL.create_directory(original_data_directory);
+
+	var data_directory_no_changed = original_data_directory === default_configuration.data_directory;
+	if (data_directory_no_changed /* || !default_configuration.data_directory */)
+		delete default_configuration.data_directory;
+	CeL.write_file(original_data_directory + default_configuration_file_name,
 			default_configuration);
+	// recovery
+	if (data_directory_no_changed)
+		default_configuration.data_directory = original_data_directory;
 }
 
 // 保存下載偏好選項 + 最愛作品清單
 // @private
 function save_preference(crawler) {
-	if (!save_config_this_time)
+	if (!save_config_this_time) {
+		CeL.debug([ 'save_preference: ', {
+			T : '已設定不自動儲存選項設定。'
+		} ], 1);
 		return;
+	}
+
 	// prepare work directory.
 	CeL.create_directory(crawler.main_directory);
-	CeL.write_file(crawler.main_directory + 'preference.json',
-			crawler.preference);
+
+	var preference = crawler.preference;
+	if (get_favorite_list_file_path(crawler)) {
+		// 不將最愛作品清單保存到 preference.json
+		preference = Object.clone(preference);
+		delete preference.favorites;
+	}
+
+	CeL.write_file(crawler.main_directory + 'preference.json', preference);
+}
+
+function check_favorites_line_separator(favorites) {
+	// console.log(favorites);
+	return !('line_separator' in favorites)
+	//
+	|| favorites.line_separator === CeL.env.line_separator ? '' : [ ' ', {
+		// 分行
+		T : [ '檔案換行為 %1，和系統換行 %2 不符。',
+		//
+		JSON.stringify(favorites.line_separator),
+		//
+		JSON.stringify(CeL.env.line_separator) ]
+	}, {
+		T : '開啟檔案時可能會有亂碼。'
+	}, {
+		b : {
+			T : '一鍵修正檔案換行'
+		},
+		onclick : function() {
+			favorites.line_separator = CeL.env.line_separator;
+			// save_favorites(crawler, favorites.toString());
+			this.innerHTML = _('已修改檔案換行。您必須儲存最愛作品清單才能生效。');
+		},
+		C : 'favorites_button'
+	} ];
 }
 
 function edit_favorites(crawler) {
+	function click_save_favorites() {
+		save_favorites(crawler, favorites_node.value.replace(/\r?\n/g,
+		// assert: !!favorites.line_separator === true
+		favorites.line_separator || CeL.env.line_separator));
+		reset_favorites(crawler);
+	}
+
 	var favorites = get_favorites(crawler, true),
 	//
 	favorites_node = CeL.new_node({
-		textarea : '',
-		S : 'width: 99%; height: 20em;'
+		textarea : null,
+		id : 'favorites_box',
+		onkeydown : function(event) {
+			// console.log(event);
+			// Escape
+			if (event.keyCode === 27) {
+				reset_favorites(crawler);
+				return false;
+			}
+			// Ctrl+Enter
+			if (event.keyCode === 13 && event.ctrlKey) {
+				click_save_favorites();
+				return false;
+			}
+		}
 	});
+	if (favorites[favorites.length - 1]) {
+		// 在最後添上換行。
+		favorites.push('');
+	}
 	favorites_node.value = favorites_toString(favorites);
 
 	CeL.new_node([ {
 		div : {
-			T : '請在每一行鍵入一個作品名稱或 id：'
+			T : '請在每一行鍵入一個作品名稱或🆔：'
 		}
 	}, favorites_node, {
 		br : null
@@ -660,22 +1285,25 @@ function edit_favorites(crawler) {
 			// save
 			b : [ '💾', {
 				T : '儲存最愛作品清單'
-			} ],
-			onclick : function() {
-				save_favorites(crawler, favorites_node.value);
-				reset_favorites(crawler);
-			},
+			}, ' (', {
+				kbd : 'Ctrl'
+			}, '+', {
+				kbd : 'Enter'
+			}, ')' ],
+			onclick : click_save_favorites,
 			C : 'favorites_button'
 		}, {
 			// abandon
 			b : [ old_Unicode_support ? '❌' : '🛑', {
 				T : '放棄編輯最愛作品清單'
-			} ],
+			}, ' (', {
+				kbd : 'Escape'
+			}, ')' ],
 			onclick : function() {
 				reset_favorites(crawler);
 			},
 			C : 'favorites_button cancel'
-		} ]
+		}, check_favorites_line_separator(favorites) ]
 	} ], [ 'favorite_list', 'clean' ]);
 	favorites_node.focus();
 }
@@ -738,7 +1366,7 @@ function get_favorites(crawler, get_parsed, remove_list) {
 	if (work_list_text && (work_list_text = work_list_text.toString()).trim()) {
 		// 有東西。
 		work_list = CeL.work_crawler.parse_favorite_list(work_list_text, {
-			get_parsed : get_parsed || remove_list,
+			get_parsed : get_parsed || !!remove_list,
 			remove : remove_list
 		});
 		return get_parsed ? work_list.parsed : work_list;
@@ -746,7 +1374,9 @@ function get_favorites(crawler, get_parsed, remove_list) {
 
 	work_list = crawler.preference.favorites;
 	if (Array.isArray(work_list) && work_list.length > 0) {
-		CeL.info('儲存最愛作品清單的檔案不存在或者沒有內容。採用舊有的最愛作品列表。');
+		CeL.info({
+			T : '儲存最愛作品清單的檔案不存在或者沒有內容。採用舊有的最愛作品列表。'
+		});
 		return work_list;
 	}
 
@@ -769,11 +1399,7 @@ function save_favorites(crawler, work_list_text) {
 		return;
 	}
 
-	CeL.create_directory(favorite_list_file_path.replace(/[^\\\/]+$/g, ''));
-	// backup old favorite list file 備份最後一次修改前的書籤，預防一不小心操作錯誤時還可以補救。
-	CeL.move_file(favorite_list_file_path, favorite_list_file_path + '.'
-			+ crawler.backup_file_extension);
-	CeL.write_file(favorite_list_file_path, work_list_text);
+	crawler.write_favorite_list(work_list_text, favorite_list_file_path);
 }
 
 function remove_favorite(crawler, work_title) {
@@ -855,14 +1481,16 @@ function reset_favorites(crawler) {
 						span : '📂',
 						R : (old_Unicode_support ? '' : '🗁 ') + _('開啓作品下載目錄'),
 						onclick : function() {
-							open_external(work_directory);
+							show_fso(work_directory);
 						},
 						S : 'cursor: pointer;'
 					});
 
-					var work_data = CeL.get_JSON(work_directory
+					var work_data = CeL.get_JSON(
 					//
-					+ CeL.env.path_separator + work_directory_name + '.json');
+					CeL.append_path_separator(work_directory)
+					//
+					+ work_directory_name + '.json');
 					// console.log(work_data);
 					if (crawler.is_finished(work_data)) {
 						nodes.push({
@@ -877,8 +1505,9 @@ function reset_favorites(crawler) {
 							//
 							+ work_data.last_download.date : '')
 						});
+						if (work_data.last_download
 						// add finished 並且檢測上次下載與上次作品更新
-						if ((!Date.parse(work_data.last_download.date)
+						&& (!Date.parse(work_data.last_download.date)
 						//
 						|| CeL.to_millisecond('200D') < Date.now()
 						//
@@ -916,7 +1545,7 @@ function reset_favorites(crawler) {
 
 	if (finished_work_title_list.length > 0) {
 		CeL.info({
-			T : [ '%1 已完結的作品名稱或 id：%2', crawler.site_name || crawler.site_id,
+			T : [ '%1 已完結的作品名稱或🆔：%2', crawler.site_name || crawler.site_id,
 					finished_work_title_list.join(', ') ]
 		});
 	}
@@ -952,10 +1581,14 @@ function reset_favorites(crawler) {
 				});
 			},
 			C : 'favorites_button'
+		} : favorites.comments > 0 || favorites.blank > 0
+		//
+		|| favorites.duplicated > 0 ? {
+			T : '🈳 尚無最愛作品。'
 		} : {
 			T : '🈳 尚未設定最愛作品。'
 		}, {
-			// 我的最愛
+			// 📝 我的最愛
 			b : [ '✍️', {
 				T : '編輯最愛作品清單'
 			} ],
@@ -985,7 +1618,7 @@ function reset_favorites(crawler) {
 			// 我的最愛
 			b : [ '🔨', {
 				// 重新整理列表檔案
-				T : '注解掉重複的作品名稱或 id',
+				T : '注解掉重複的作品名稱或🆔',
 			} ],
 			onclick : function() {
 				crawler.parse_favorite_list_file(
@@ -997,7 +1630,7 @@ function reset_favorites(crawler) {
 		}, {
 			// 我的最愛
 			b : [ '❌', {
-				T : '刪除重複的作品名稱或 id'
+				T : '刪除重複的作品名稱或🆔'
 			} ],
 			onclick : function() {
 				crawler.parse_favorite_list_file(
@@ -1011,14 +1644,16 @@ function reset_favorites(crawler) {
 			C : 'favorites_button'
 		} ] : '', finished_work_title_list.length > 0 ? {
 			b : [ '❌', {
-				T : [ '注解掉%1個已完結的作品名稱或 id', finished_work_title_list.length ]
+				T : [ '注解掉%1個已完結的作品名稱或🆔', finished_work_title_list.length ]
 			} ],
 			onclick : function() {
 				remove_favorite(crawler, finished_work_title_list);
 				reset_favorites(crawler);
 			},
 			C : 'favorites_button'
-		} : '' ]
+		} : '',
+		// check_favorites_line_separator(favorites)
+		]
 	}, favorites.length < read_work_data_limit
 	//
 	|| crawler.read_work_data ? '' : [ {
@@ -1064,21 +1699,28 @@ function reset_site_options() {
 		arg_type_data = CeL.work_crawler.prototype.import_arg_hash[download_option],
 		//
 		arg_types = arg_type_data && Object.keys(arg_type_data).join();
-		CeL.set_class(download_options_node, 'selected', {
-			remove : arg_types === 'number' || arg_types === 'string'
-					|| !crawler[download_option]
-		});
-		if (arg_types === 'number' || arg_types === 'string') {
-			CeL.DOM.set_text(download_option + '_input',
-			//
-			crawler[download_option] || crawler[download_option] === 0
-			//
-			? crawler[download_option] : '');
+
+		if (!CeL.has_class(download_options_node, 'non_select')) {
+			CeL.set_class(download_options_node, 'selected', {
+				// 只要為可選擇之選項，便依照是否為空值設定選擇狀態。
+				// assert: 純粹為數字或者字串則不設定 'selected'。
+				remove : !crawler[download_option]
+			});
 		}
+
+		var value = download_option in global_options ? default_configuration[download_option]
+				: crawler[download_option] || crawler[download_option] === 0 ? crawler[download_option]
+						: '';
+		CeL.DOM.set_text(download_option + '_input', value, {
+			// 自動調整輸入框大小。
+			resize : true,
+			min_width : 80,
+			max_width : 800
+		});
 	}
 }
 
-// will called by setup_crawler() @ work_crawler_loder.js
+// will called by setup_crawler() @ work_crawler_loader.js
 function prepare_crawler(crawler, crawler_module) {
 	var site_id = site_used;
 	if (site_id in download_site_nodes.link_of_site) {
@@ -1092,15 +1734,17 @@ function prepare_crawler(crawler, crawler_module) {
 
 	/**
 	 * 會從以下檔案匯入使用者 preference:<code>
-	# work_crawler_loder.js
-	# work_crawler_loder.configuration.js → site_configuration
-	# global.data_directory + default_configuration_file_name → default_configuration
+	# work_crawler_loader.js
+	# work_crawler.default_configuration.js → work_crawler.configuration.js
+	#
+	# → site_configuration
+	# global.original_data_directory + default_configuration_file_name → default_configuration
 	# site script .js → crawler.*
 	# setup_crawler.prepare() call setup_crawler.prepare() call default_configuration[site_id] → crawler.*
 	# crawler.main_directory + 'preference.json' → crawler.preference
 	 </code>
 	 * 
-	 * TODO: 將 default_configuration_file_name 轉入 work_crawler_loder.js
+	 * TODO: 將 default_configuration_file_name 轉入 work_crawler_loader.js
 	 */
 
 	// 在這邊引入最重要的設定是儲存的目錄 crawler.main_directory。
@@ -1109,28 +1753,32 @@ function prepare_crawler(crawler, crawler_module) {
 	// 只是下次下載的時候還會再重新擷取並且儲存一次。
 	if (default_configuration[site_id]) {
 		// e.g., crawler.main_directory
-		CeL.info('import configuration of ' + site_id + ': '
-				+ JSON.stringify(default_configuration[site_id]));
+		CeL.info({
+			T : [ 'import configuration of %1: %2', site_id,
+					JSON.stringify(default_configuration[site_id]) ]
+		});
 		Object.assign(crawler, default_configuration[site_id]);
 	}
 
 	crawler.preference = Object.assign({
 		// 因為會'重設下載選項'，一般使用不應 cache 這個值。
-		crawler_configuration : CeL.null_Object(),
+		crawler_configuration : Object.create(null),
 		// 我的最愛 my favorite 書庫 library
 		favorites : []
 	}, CeL.get_JSON(crawler.main_directory + 'preference.json'));
 
 	// import crawler.preference.crawler_configuration
 	var crawler_configuration = crawler.preference.crawler_configuration;
-	crawler.default_save_to_preference = CeL.null_Object();
+	crawler.default_save_to_preference = Object.create(null);
 	Object.keys(save_to_preference).forEach(function(key) {
 		// Skip .main_directory
 		crawler.default_save_to_preference[key] = crawler[key];
 		if (key in crawler_configuration) {
-			CeL.info('import preference of ' + site_id + ': '
-			//
-			+ key + '=' + crawler_configuration[key] + '←' + crawler[key]);
+			CeL.info({
+				T : [ 'import preference of %1: %2', site_id,
+				//
+				key + '=' + crawler_configuration[key] + '←' + crawler[key] ]
+			});
 			crawler[key] = crawler_configuration[key];
 		}
 	});
@@ -1142,12 +1790,13 @@ function prepare_crawler(crawler, crawler_module) {
 	download_site_nodes.link_of_site[site_id] = crawler.base_URL;
 	// add link to site
 	CeL.new_node([ ' ', {
-		a : [ '🔗 ', {
+		a : [ '🔗', {
 			// 作品平臺連結 (略稱)
 			T : '連結'
 		} ],
+		R : _('連結'),
 		href : crawler.base_URL,
-		onclick : open_external
+		onclick : open_URL
 	} ], download_site_nodes.node_of_id[site_id].parentNode);
 }
 
@@ -1228,13 +1877,14 @@ var search_result_columns = {
 				// var work_data =
 				// work_data_search_queue[this.parentNode.title];
 
-				open_external(work_data.directory);
+				show_fso(work_data.directory);
 			},
 			S : 'cursor: pointer;'
 		} ] : '';
 	} ],
 
 	限 : [ '部份章節需要付費/被鎖住/被限制', function(crawler, work_data) {
+		// 💰
 		return work_data.some_limited ? '🔒' : '';
 	} ],
 
@@ -1261,7 +1911,7 @@ var search_result_columns = {
 			a : status,
 			R : work_data.id,
 			href : crawler.full_URL(href),
-			onclick : open_external
+			onclick : open_URL
 		};
 	} ],
 
@@ -1272,7 +1922,7 @@ var search_result_columns = {
 		if (node && work_data.fill_from_chapter_list)
 			node = [ {
 				span : old_Unicode_support ? '' : '🧩',
-				R : '資訊來自章節清單'
+				R : _('資訊來自章節清單')
 			}, node ];
 		else
 			node = node || work_data.last_update;
@@ -1282,7 +1932,7 @@ var search_result_columns = {
 		&& !Array.isArray(work_data.latest_chapter_url) ? [ {
 			a : node,
 			href : crawler.full_URL(work_data.latest_chapter_url),
-			onclick : open_external
+			onclick : open_URL
 		}, node === work_data.last_update ? '' : {
 			sub : work_data.last_update,
 		} ] : {
@@ -1295,8 +1945,8 @@ var search_result_columns = {
 };
 
 function show_search_result(work_data_search_queue) {
-	var work_title = work_data_search_queue.work_title, not_found_site_hash = CeL
-			.null_Object(), OK = 0, node_list = [], result_columns = [];
+	var work_title = work_data_search_queue.work_title, not_found_site_hash = Object
+			.create(null), OK = 0, node_list = [], result_columns = [];
 	delete work_data_search_queue.work_title;
 	search_result_columns.No = function() {
 		this.S = 'text-align: right;';
@@ -1389,7 +2039,7 @@ function show_search_result(work_data_search_queue) {
 				span : '➕',
 				S : old_Unicode_support ? 'color: #888;' : ''
 			}, {
-				T : [ '將所有%1個網站找到的作品皆加入最愛清單', OK ]
+				T : [ '將所有%1個網站找到的作品全部加入網站各自之最愛清單', OK ]
 			} ],
 			onclick : function() {
 				for ( var site_id in work_data_search_queue) {
@@ -1423,7 +2073,7 @@ function show_search_result(work_data_search_queue) {
 	if (!CeL.is_empty_object(not_found_site_hash)) {
 		var not_found_list = Object.keys(not_found_site_hash),
 		//
-		status_hash = CeL.null_Object();
+		status_hash = Object.create(null);
 		node_list.push({
 			hr : null
 		}, {
@@ -1442,9 +2092,13 @@ function show_search_result(work_data_search_queue) {
 
 		not_found_list = [ {
 			tr : [ {
-				th : '錯誤原因'
+				th : {
+					T : '錯誤原因'
+				}
 			}, {
-				th : '作品網站',
+				th : {
+					T : '作品網站'
+				},
 				S : 'max-width: 50%;'
 			} ]
 		} ];
@@ -1482,46 +2136,52 @@ function show_search_result(work_data_search_queue) {
 	delete CeL.get_element('search_results').running;
 }
 
-var language_used;
+var type_and_language_used;
 // 自動搜尋不同的網站並選擇下載作品。
 function search_work_title() {
-	if (!language_used) {
-		CeL.info({
-			// 點選 語言
-			T : '請先指定要搜尋的作品類別或網站。'
-		});
+	// 點選 語言
+	if (test_and_attention('請先在網路作品區指定要搜尋的作品類別。', !type_and_language_used)) {
 		return;
 	}
 
+	// 搜尋名稱用於跨網站。僅能搜尋作品名稱，無法搜尋作品id。
+	// 另外假如您已知作品id，可以直接在最愛作品清單輸入id，用不著搜尋。
 	var work_title = CeL.node_value('#input_work_id').trim();
-	if (!work_title) {
-		CeL.info({
-			T : '請輸入作品名稱或 id。'
-		});
+	if (test_and_attention('請先輸入作品名稱。', !work_title)) {
 		CeL.get_element('input_work_id').focus();
 		return;
 	}
 
 	var sites = CeL.get_element('search_results');
-	if (sites.running) {
-		CeL.error({
-			T : [ '正在搜尋[%1]中，必須先取消當前的搜尋程序才能重新搜尋。', work_title ]
-		});
+	if (test_and_attention([ '正在搜尋[%1]中，必須先取消當前的搜尋程序才能重新搜尋。', work_title ],
+			sites.running)) {
 		return;
 	}
 	sites.running = work_title;
+
+	var guessed_language = CeL.guess_text_language(work_title);
+	if (!type_and_language_used.endsWith(guessed_language)) {
+		CeL.warn({
+			T : [ '作品名稱之語言似乎為%1，但指定了%2。', guessed_language,
+					type_and_language_used ]
+		});
+	}
 
 	CeL.remove_all_child('search_results');
 	CeL.new_node([ {
 		T : [ '正在搜尋[%1]中……', work_title ]
 	}, {
-		span : '',
+		span : {
+			T : '尚無任何網站回傳結果……'
+		},
 		id : 'searching_process'
 	}, {
 		div : '',
 		id : 'still_searching'
 	}, {
-		b : '取消搜尋',
+		b : {
+			T : '取消搜尋'
+		},
 		onclick : function() {
 			CeL.toggle_display('search_results_panel', false);
 			work_data_search_queue = null;
@@ -1530,7 +2190,9 @@ function search_work_title() {
 		},
 		C : 'button'
 	}, {
-		b : '放棄還沒搜尋完成的網站',
+		b : {
+			T : '放棄還沒搜尋完成的網站'
+		},
 		onclick : function() {
 			work_data_search_queue.work_title = work_title;
 			show_search_result(work_data_search_queue);
@@ -1539,8 +2201,9 @@ function search_work_title() {
 		C : 'button'
 	} ], 'search_results');
 
-	sites = download_sites_set[language_used];
-	var work_data_search_queue = CeL.null_Object(), sites = Object.keys(sites), site_count = sites.length, done = 0, found = 0;
+	sites = download_sites_set[type_and_language_used];
+	sites = Object.keys(sites);
+	var work_data_search_queue = Object.create(null), site_count = sites.length, done = 0, found = 0;
 	sites.forEach(function(site_id) {
 		function all_done(work_data) {
 			if (!work_data_search_queue) {
@@ -1552,7 +2215,8 @@ function search_work_title() {
 			// for debug
 			if (CeL.is_debug())
 				console.log(work_data);
-			if (work_data.chapter_count >= 0)
+			// work_data maybe `undefined`
+			if (work_data && work_data.chapter_count >= 0)
 				found++;
 			if (++done === site_count) {
 				// all done
@@ -1562,7 +2226,7 @@ function search_work_title() {
 			}
 		}
 
-		site_id = language_used + '/' + site_id;
+		site_id = type_and_language_used + '/' + site_id;
 		var crawler = get_crawler(site_id), chapter_time_interval = crawler
 				.get_chapter_time_interval('search');
 		CeL.debug(crawler.site_id + ' chapter_time_interval: '
@@ -1586,7 +2250,7 @@ function search_work_title() {
 
 			if (site_count - done < 12) {
 				var still_searching = sites.filter(function(site_id) {
-					return !((language_used + '/' + site_id)
+					return !((type_and_language_used + '/' + site_id)
 					//
 					in work_data_search_queue);
 				});
@@ -1604,35 +2268,53 @@ function search_work_title() {
 
 // ----------------------------------------------
 
+var crawler_loaded = Object.create(null);
+
+function for_all_crawler_loaded(operator) {
+	for ( var site_id in crawler_loaded) {
+		operator.call(crawler_loaded[site_id], site_id);
+	}
+}
+
 function get_crawler(site_id, just_test) {
 	site_id = site_id || site_used;
+	var attention_message = '請先指定要下載的網站。';
 	if (!site_id) {
 		if (!just_test) {
-			CeL.info({
-				T : '請先指定要下載的網站。'
-			});
+			show_attention({
+				b : {
+					T : attention_message
+				}
+			}, attention_message);
 		}
 		return;
 	}
+	hide_attention_panel(attention_message);
 
 	var crawler = base_directory + site_id + '.js';
-	CeL.debug('當前路徑: ' + CeL.storage.working_directory(), 1, 'get_crawler');
-	CeL.debug('Load ' + crawler, 1, 'get_crawler');
+	CeL.debug({
+		T : [ '當前路徑：%1', CeL.storage.working_directory() ]
+	}, 1, 'get_crawler');
+	CeL.debug({
+		T : [ '載入並使用下載工具 %1', crawler ]
+	}, 1, 'get_crawler');
 
 	var old_site_used = site_used;
 	// Will used in function prepare_crawler()
 	site_used = site_id;
 
 	// include site script .js
-	// 這個過程會執行 setup_crawler() @ work_crawler_loder.js
+	// 這個過程會執行 setup_crawler() @ work_crawler_loader.js
 	// 以及 setup_crawler.prepare()
 	crawler = require(crawler);
+	crawler_loaded[site_id] = crawler;
 	if (old_site_used !== site_used) {
 		// recover
 		site_used = old_site_used;
 	} else {
 		CeL.toggle_display('favorites_panel', true);
 		CeL.toggle_display('download_options_panel', true);
+		set_panel_height('favorites_panel');
 		process.title = _('選擇下載工具：%1', crawler.site_id);
 	}
 
@@ -1650,7 +2332,7 @@ function Download_job(crawler, work_id) {
 	// 顯示下載進度條。
 	this.progress_layer = CeL.new_node({
 		div : {
-			T : '下載任務初始化中……'
+			T : '下載任務初始化、讀取作品資訊中……'
 		},
 		C : 'progress_layer'
 	});
@@ -1658,10 +2340,16 @@ function Download_job(crawler, work_id) {
 	// console.log(crawler);
 	this.layer = CeL.new_node({
 		div : [ {
-			b : [ crawler.site_name ? {
-				span : crawler.site_name,
-				R : crawler.site_id
-			} : crawler.site_id, ' ', work_id ],
+			b : [ {
+				span : crawler.site_name ? {
+					span : crawler.site_name,
+					R : crawler.site_id
+				} : crawler.site_id,
+				C : 'site_label'
+			}, {
+				span : work_id,
+				R : work_id
+			} ],
 			C : 'task_label'
 		}, {
 			div : this.progress_layer,
@@ -1671,23 +2359,12 @@ function Download_job(crawler, work_id) {
 				// 暫停下載 (略稱)
 				T : '暫停'
 			} ],
-			R : (old_Unicode_support ? '' : '⏯ ') + _('暫停/恢復下載'),
+			R : (old_Unicode_support ? '' : '⏯ ') + _('暫停/恢復下載')
+			//
+			+ '\n' + _('不會馬上反應，會等到當前的章節處理完畢才處理。'),
 			C : 'task_controller',
-			onclick : function() {
-				if (this.stopped) {
-					this.stopped = false;
-					continue_task(this_job);
-					CeL.DOM.set_text(this,
-					// pause
-					_((old_Unicode_support ? '' : '⏸') + _('暫停')));
-				} else {
-					this.stopped = true
-					stop_task(this_job);
-					CeL.DOM.set_text(this,
-					// resume ⏯ "恢復下載 (略稱)"
-					_('▶️' + _('繼續')));
-				}
-				return false;
+			onclick : function(event) {
+				return pause_resume_job(this, this_job);
 			}
 		}, {
 			span : [ {
@@ -1697,7 +2374,7 @@ function Download_job(crawler, work_id) {
 				// 取消下載 (略稱)
 				T : '取消'
 			} ],
-			R : _('取消下載'),
+			R : _('取消下載') + '\n' + _('不會馬上反應，會等到當前的章節處理完畢才處理。'),
 			C : 'task_controller',
 			onclick : cancel_task.bind(null, this_job)
 		}, {
@@ -1716,6 +2393,23 @@ function Download_job(crawler, work_id) {
 	});
 }
 
+function pause_resume_job(this_node, this_job) {
+	if (this_node.stopped) {
+		this_node.stopped = false;
+		continue_task(this_job);
+		CeL.DOM.set_text(this_node,
+		// pause
+		_((old_Unicode_support ? '' : '⏸') + _('暫停')));
+	} else {
+		this_node.stopped = true;
+		stop_task(this_job);
+		CeL.DOM.set_text(this_node,
+		// resume ⏯ "恢復下載 (略稱)"
+		_('▶️' + _('繼續')));
+	}
+	return false;
+}
+
 // queue 佇列
 Download_job.job_list = [];
 
@@ -1724,6 +2418,9 @@ function is_Download_job(value) {
 }
 
 function add_new_download_job(crawler, work_id, no_message) {
+	var attention_message = '請先輸入作品名稱或🆔。';
+	hide_attention_panel(attention_message);
+
 	if (crawler.downloading_work_data) {
 		work_id = work_id.trim();
 		if (work_id && crawler.downloading_work_data.id !== work_id
@@ -1731,24 +2428,28 @@ function add_new_download_job(crawler, work_id, no_message) {
 				&& !crawler.download_queue.includes(work_id)) {
 			crawler.download_queue.push(work_id);
 			if (!no_message) {
-				CeL.info('正在從' + crawler.site_name + '下載 "'
-				//
-				+ (crawler.downloading_work_data.title
-				//
-				|| crawler.downloading_work_data.id)
-				//
-				+ '" 這個作品。將等到這個作品下載完畢，或者取消下載後，再下載 ' + work_id + '。');
+				CeL.info([ {
+					T : [
+							'正在從%1下載《%2》這個作品。將等到這個作品下載完畢，或者取消下載後，再下載 %3。',
+							crawler.site_name,
+							crawler.downloading_work_data.title
+									|| crawler.downloading_work_data.id,
+							work_id ]
+				} ]);
 			}
 		}
 		return;
 	}
 
-	var job = new Download_job(crawler, work_id);
-	// embryonic
+	// embryonic work_data
 	crawler.downloading_work_data = {
 		id : work_id,
+		// 紀錄原先輸入名稱。
+		original_downloading_name : work_id,
 		job_index : Download_job.job_list.length
 	};
+	var job = new Download_job(crawler, work_id);
+	// @see function initialize_work_data(crawler, work_data)
 	Download_job.job_list.push(job);
 	return job;
 }
@@ -1762,6 +2463,8 @@ function toggle_download_job_panel() {
 		CeL.toggle_display('download_job_panel', false);
 	}
 }
+
+var latest_play_finished_sound = Date.now();
 
 function destruct_download_job(crawler) {
 	var work_data = crawler.downloading_work_data;
@@ -1779,18 +2482,21 @@ function destruct_download_job(crawler) {
 		CeL.DOM.remove_node(job.layer);
 	}
 	if (work_data.error_list
-			|| ('preserve_download_work_layer' in crawler ? crawler.preserve_download_work_layer
-					: preserve_download_work_layer)) {
+			|| default_configuration.preserve_download_work_layer) {
 		// remove "暫停"
 		// job.layer.removeChild(job.layer.firstChild);
 		CeL.new_node([ {
 			T : '↻',
-			R : '重新下載',
+			R : _('重新下載'),
 			C : 'task_controller',
 			onclick : function() {
 				remove_download_work_layer();
 				// crawler.recheck = true;
-				add_new_download_job(crawler, work_data.title || work_data.id);
+				add_new_download_job(crawler,
+				// 重新下載鍵功能 以原先輸入名稱去下載
+				work_data.original_downloading_name
+				//
+				|| work_data.title || work_data.id);
 			},
 			S : 'color: blue; font-weight: bold;'
 		}, {
@@ -1813,9 +2519,9 @@ function destruct_download_job(crawler) {
 			// 顯示最後一個錯誤。
 			+ work_data.error_list[work_data.error_list.length - 1] + '</span>'
 			//
-			+ (work_data.error_list.length > 1 ? ' <small>(總共有'
+			+ (work_data.error_list.length > 1 ? ' <small>'
 			//
-			+ work_data.error_list.length + '個錯誤)</small>' : '');
+			+ _('（總共有%1個錯誤）', work_data.error_list.length) + '</small>' : '');
 			job.layer.title = work_data.error_list.join(CeL.env.line_separator);
 			if (false)
 				CeL.new_node([ {
@@ -1834,6 +2540,13 @@ function destruct_download_job(crawler) {
 		add_new_download_job(crawler, crawler.download_queue.shift());
 	} else
 		toggle_download_job_panel();
+
+	if (crawler.play_finished_sound
+			&& (Date.now() - latest_play_finished_sound > 2000)) {
+		// 播放任務完成的音效。
+		document.getElementById("finished_sound").play();
+		latest_play_finished_sound = Date.now();
+	}
 }
 
 function initialize_work_data(crawler, work_data) {
@@ -1855,16 +2568,19 @@ function initialize_work_data(crawler, work_data) {
 
 	// 初始化 initialization: crawler.downloading_work_data, job.work_data
 
-	if (work_data) {
+	// 可能輸入 work_id or work_title。
+	if (typeof work_data === 'object') {
 		// reset error list 下載出錯的作品
 		delete work_data.error_list;
 
 		// 這裡的 .id 可能是作品標題，因此不應該覆蓋 work_data.id
 		delete crawler.downloading_work_data.id;
+		// copy attributes
 		crawler.downloading_work_data = Object.assign(work_data,
 				crawler.downloading_work_data);
 
 		var job = Download_job.job_list[work_data.job_index];
+		// @see function add_new_download_job(crawler, work_id, no_message)
 		job.work_data = work_data;
 
 		return work_data;
@@ -1875,18 +2591,23 @@ function after_download_chapter(work_data, chapter_NO) {
 	initialize_work_data(this, work_data);
 
 	work_data.downloaded_chapters = chapter_NO;
-	var percent = Math.round(1000 * chapter_NO / work_data.chapter_count) / 10
-			+ '%', job = Download_job.job_list[work_data.job_index];
+	var percent = Math.round(1000 * chapter_NO / work_data.chapter_count)
+	// 將 "/ 10" 提到上一行會造成無法格式化程式碼的問題。
+	/ 10 + '%', job = Download_job.job_list[work_data.job_index];
 
 	// add link to work
 	var title_tag = job.layer.childNodes[0];
 	if (!title_tag.href) {
-		job.layer.replaceChild(CeL.new_node({
+		var work_URL = job.crawler.full_URL(job.crawler.work_URL, work_data.id), a_node = {
 			a : title_tag.childNodes,
-			href : job.crawler.full_URL(job.crawler.work_URL, work_data.id),
-			onclick : open_external,
+			onclick : open_URL,
 			C : title_tag.className
-		}), title_tag);
+		};
+		if (typeof work_URL === 'string') {
+			// 對於一些需要 POST 取得 JSON 作品資料的作品，work_URL 可能是 {Array}。
+			a_node.href = work_URL;
+		}
+		job.layer.replaceChild(CeL.new_node(a_node), title_tag);
 	}
 
 	job.progress_layer.style.width = percent;
@@ -1945,15 +2666,15 @@ function start_gui_crawler() {
 
 	// initialization && initialization();
 
+	var attention_message = '請先輸入作品名稱或🆔。';
+
 	// or work_title
 	var work_id = CeL.node_value('#input_work_id');
-	if (work_id) {
-		add_new_download_job(crawler, work_id);
-	} else {
-		CeL.info({
-			T : '請輸入作品名稱或 id。'
-		});
+	if (test_and_attention(attention_message, !work_id)) {
 		CeL.get_element('input_work_id').focus();
+	} else {
+		hide_attention_panel(attention_message);
+		add_new_download_job(crawler, work_id);
 	}
 }
 
@@ -1992,9 +2713,9 @@ function open_download_directory(crawler) {
 	if (is_Download_job(crawler)) {
 		// console.log( crawler.work_data);
 		if (crawler.work_data && crawler.work_data.directory)
-			open_external(crawler.work_data.directory);
+			show_fso(crawler.work_data.directory);
 	} else if (crawler = to_crawler(crawler))
-		open_external(crawler.main_directory);
+		show_fso(crawler.main_directory);
 	return false;
 }
 
@@ -2017,10 +2738,36 @@ function check_update_NOT_package() {
 			CeL.error({
 				T : [ '非安裝包版本更新失敗：%1', error ]
 			});
+			show_attention({
+				b : {
+					T : [ '非安裝包版本更新失敗：%1', error ]
+				}
+			});
 		} else {
 			CeL.log({
 				T : '非安裝包版本更新完畢。您需要重新啟動程式以使用新版本。'
 			});
+
+			CeL.new_node({
+				// 重新啟動應用程式或重新整理網頁(Ctrl-R)
+				span : [ {
+					T : '更新完畢。'
+				}, {
+					T : '重新啟動應用程式。'
+				}, {
+					T : '所有當前作業都會中斷！',
+					S : 'color: red; font-weight: bold;'
+				} ],
+				R : _('建議重新啟動應用程式以使用完整更新後的程式。'),
+				S : 'cursor: pointer;',
+				onclick : function() {
+					// app.relaunch(); @ gui_electron.js
+					node_electron.ipcRenderer.send('send_message', 'relaunch');
+
+					// 重新讀取應用程式之網頁部分。
+					// history.go(0);
+				}
+			}, [ update_panel, 'clean' ]);
 		}
 	});
 }
@@ -2046,12 +2793,12 @@ function check_update() {
 	var update_panel = CeL.new_node({
 		div : {
 			T : '檢查更新中……',
-			C : 'waiting',
-			onclick : function() {
-				CeL.toggle_display(update_panel, false);
-			}
+			C : 'waiting'
 		},
-		id : 'update_panel'
+		id : 'update_panel',
+		onclick : function() {
+			CeL.toggle_display(update_panel, false);
+		}
 	}, [ document.body, 'first' ]);
 
 	function update_process(version_data) {
@@ -2065,11 +2812,14 @@ function check_update() {
 			return;
 		}
 
+		// package_information
 		var package_data = is_installation_package ? process.resourcesPath
 				+ '\\app.asar\\' : CeL.work_crawler.prototype.main_directory;
 		package_data = CeL.read_file(package_data + 'package.json');
 		if (!package_data) {
-			console.error('無法讀取版本資訊 package.json！');
+			CeL.error({
+				T : '無法讀取版本資訊 package.json！'
+			});
 			CeL.toggle_display(update_panel, false);
 			return;
 		}
@@ -2082,10 +2832,17 @@ function check_update() {
 				T : [ '有新版本：%1', version_data.latest_version ]
 			},
 			href : 'https://github.com/' + GitHub_repository_path,
-			onclick : open_external
+			onclick : open_URL
 		}, has_version ? [ {
 			br : null
 		}, '← ' + has_version ] : '' ], [ update_panel, 'clean' ]);
+		show_attention({
+			a : {
+				T : [ '有新版本：%1', version_data.latest_version ]
+			},
+			href : 'https://github.com/' + GitHub_repository_path,
+			onclick : open_URL
+		});
 
 		check_update_NOT_package();
 	}
@@ -2122,29 +2879,68 @@ function set_taskbar_progress(progress) {
 	}
 }
 
+// https://electronjs.org/docs/api/dialog
+function open_dialog(options, callback) {
+	var id;
+	do {
+		id = Math.random();
+	} while (id in open_dialog.queue);
+	if (callback)
+		open_dialog.queue[id] = callback;
+	node_electron.ipcRenderer.send('open_dialog', [ id, options ]);
+}
+open_dialog.queue = Object.create(null);
+
+function recerive_dialog_result(event, result) {
+	var id = result[0];
+	result = result[1];
+	var callback = open_dialog.queue[id];
+	delete open_dialog.queue[id];
+	if (!callback
+	// || result && result.canceled
+	) {
+		return;
+	}
+	// 注意: 選擇目錄時，不會自動加上最後的目錄分隔符號！
+	callback(result);
+}
+
 function open_DevTools() {
 	node_electron.ipcRenderer.send('open_DevTools', true);
+	console.warn('-'.repeat(80));
+	console.warn(_('本欄基本上僅供調試使用。若您有下載功能方面的需求，煩請提報議題，謝謝。') + ' '
+			+ 'https://github.com/kanasimi/work_crawler/issues');
 	return false;
 }
 
 // ----------------------------------------------
 
-// Select CSS theme
-function select_theme(theme) {
-	if (typeof theme !== 'string') {
-		theme = this.innerHTML;
+function test_and_attention(message, condition_to_show) {
+	if (condition_to_show) {
+		show_attention({
+			b : {
+				T : message
+			}
+		}, message);
+		return condition_to_show;
 	}
-	if (!theme_list.includes(theme)) {
-		CeL.warn('select_theme: Invalid theme name: ' + theme);
-		return;
+	hide_attention_panel(message);
+}
+
+var attention_data = Object.create(null);
+
+function show_attention(message, options) {
+	if (options && options.type)
+		attention_data.type = options.type;
+	CeL.new_node(message, [ 'attention_inner', 'clean' ]);
+	CeL.toggle_display('attention_panel', true);
+}
+
+function hide_attention_panel(options) {
+	if (options && options.type) {
+		// only remove this type
+		if (attention_data.type !== options.type)
+			return;
 	}
-
-	theme_list.forEach(function(theme_name) {
-		CeL.set_class(document.body, theme_name, {
-			remove : theme_name !== theme
-		});
-	});
-
-	default_configuration.CSS_theme = theme;
-	save_default_configuration();
+	CeL.toggle_display('attention_panel', false);
 }

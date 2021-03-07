@@ -8,7 +8,7 @@
 
 global.need_work_id = false;
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 var log_file = CeL.env.script_name + '.log.txt';
 
@@ -31,15 +31,19 @@ catalog_directory = process.argv[3] || global.catalog_directory;
 var fso_name_list = CeL.read_directory(target_directory);
 
 if (!fso_name_list) {
-	CeL.error(CeL.env.script_name + ': The target directory ['
-			+ target_directory + '] does not exist?');
+	CeL.error({
+		T : [ '%2: The target directory [%1] does not exist?',
+				target_directory, CeL.env.script_name ]
+	});
 	process.exit(1);
 }
 
 // -----------------------------------------------------------------
 
-CeL.info(CeL.env.script_name + ': ' + target_directory + ': '
-		+ fso_name_list.length + ' files / directories to check.');
+CeL.info({
+	T : [ '%3: %1: %2 files / directories to check.', target_directory,
+			fso_name_list.length, CeL.env.script_name ]
+});
 
 // console.log(fso_name_list.slice(0, 3));
 
@@ -190,9 +194,11 @@ Object.keys(catalog_directory).forEach(function(catalog) {
 			//
 			main_catalog_directory + directory[sub_catalog]);
 			if (!CeL.directory_exists(sub_catalog_directory)) {
-				var message = 'Create directory of sub-catalog ['
+				var message = CeL.gettext(
 				//
-				+ sub_catalog + ']:	' + sub_catalog_directory;
+				'Create directory of sub-catalog [%1]:',
+				//
+				sub_catalog) + '	' + sub_catalog_directory;
 				add_log(message);
 				CeL.debug(message);
 				auto_created_directory_list.push(sub_catalog_directory);
@@ -202,7 +208,9 @@ Object.keys(catalog_directory).forEach(function(catalog) {
 		});
 		return;
 	} else if (catalog !== 'root') {
-		CeL.error('Invalid catalog: ' + catalog);
+		CeL.error({
+			T : [ 'Invalid catalog: %1', catalog ]
+		});
 	}
 });
 
@@ -228,15 +236,19 @@ function check_fso(fso_name) {
 			return true;
 		}
 
-		CeL.warn('因為最大的檔案有 ' + biggest_file_size + ' B，因此跳過這個' + message
-				+ '的目錄: ' + directory_path);
+		CeL.warn({
+			T : [ '因為最大的檔案有 %1 bytes，因此跳過這個%2的目錄：%3', biggest_file_size,
+					message, directory_path ]
+		});
 	}
 
 	var directory_path = target_directory + fso_name,
 	//
 	fso_status = CeL.fso_status(directory_path);
 	if (!fso_status) {
-		CeL.error('Can not read file / directory: ' + directory_path);
+		CeL.error({
+			T : [ 'Can not read file / directory: %1', directory_path ]
+		});
 		return;
 	}
 	if (!fso_status.isDirectory()) {
@@ -244,7 +256,8 @@ function check_fso(fso_name) {
 
 		// 經過測試，.pkg file 通常越壓縮越大。
 		if (false && PATTERN_executable_file.test(fso_name)) {
-			process_queue.push([ directory_path, 'game file', '為遊戲可執行檔或函式庫' ]);
+			process_queue.push([ directory_path, 'game file',
+					CeL.gettext('為遊戲可執行檔或函式庫') ]);
 		} else
 			classify(fso_name, directory_path, fso_status);
 		return;
@@ -254,12 +267,16 @@ function check_fso(fso_name) {
 	directory_path += CeL.env.path_separator;
 	var sub_fso_list = CeL.read_directory(directory_path);
 	if (!sub_fso_list) {
-		CeL.error('Can not read directory: ' + directory_path);
+		CeL.error({
+			T : [ 'Can not read directory: %1', directory_path ]
+		});
 		return;
 	}
 	if (sub_fso_list.length === 0) {
 		if (!Object.values(catalog_directory).includes(directory_path))
-			CeL.warn('Empty directory: ' + directory_path);
+			CeL.warn({
+				T : [ 'Empty directory: %1', directory_path ]
+			});
 		return;
 	}
 	// TODO: 這會漏掉只有空目錄的情況。
@@ -277,8 +294,7 @@ function check_fso(fso_name) {
 				biggest_file_size = sub_fso_status.size;
 			non_zero_size_count++;
 		}
-		// TODO: .bmp
-		if (/\.(?:jpg|jpeg|webp|png|gif|ico|icon)$/i.test(sub_fso_name)) {
+		if (/\.(?:jpg|jpeg|webp|png|gif|bmp|ico|icon)$/i.test(sub_fso_name)) {
 			image_count++;
 		} else if (PATTERN_executable_file.test(sub_fso_name)) {
 			exe_count++;
@@ -358,9 +374,10 @@ function check_fso(fso_name) {
 	// 降序序列排序: 大→小
 	// non_zero_size_array.sort(CeL.descending);
 
-	if ((exe_count > 0 || iso_count > 1 && sub_sub_files_count < 20 || iso_count === sub_sub_files_count)
-			&& test_size_OK(1e10, 'game folder', '含有 ' + exe_count + '/'
-					+ sub_sub_files_count + ' 個可執行檔或函式庫')) {
+	if ((exe_count > 0 && sub_sub_files_count - archive_count > 3
+			|| iso_count > 1 && sub_sub_files_count < 20 || iso_count === sub_sub_files_count)
+			&& test_size_OK(1e10, 'game folder', CeL.gettext(
+					'含有 %1/%2 個可執行檔或函式庫', exe_count, sub_sub_files_count))) {
 		return;
 	}
 
@@ -369,8 +386,8 @@ function check_fso(fso_name) {
 	: image_count > 2 && image_count > sub_sub_files_count - 2)) {
 		fso_status.maybe_image = true;
 		// 壓縮大多只有圖片的目錄。
-		if (test_size_OK(5e7, 'image folder', '含有 ' + image_count + '/'
-				+ sub_sub_files_count + ' 個圖片')) {
+		if (test_size_OK(5e7, 'image folder', CeL.gettext('含有 %1/%2 張圖片',
+				image_count, sub_sub_files_count))) {
 			return;
 		}
 	}
@@ -385,13 +402,15 @@ function check_fso(fso_name) {
 		return sub_fso_name_list.some(function(name) {
 			return PATTERN_executable_file.test(name);
 		});
-	}) && test_size_OK(null, 'game folder', '次目錄中含有可執行檔或函式庫')) {
+	}) && test_size_OK(null, 'game folder', CeL.gettext('次目錄中含有可執行檔或函式庫'))) {
 		return;
 	}
 
 	if (image_count > 9 && image_count / sub_sub_files_count > .5) {
 		fso_status.maybe_image = true;
-		CeL.warn('需要手動檢查的目錄: ' + directory_path);
+		CeL.warn({
+			T : [ '需要手動檢查的目錄：%1', directory_path ]
+		});
 		// return;
 	}
 
@@ -415,9 +434,11 @@ function classify(fso_name, fso_path, fso_status, sub_fso_list) {
 			return;
 		}
 		move_to_path = CeL.next_fso_NO_unused(move_to_path + fso_name, true);
-		CeL.info(CeL.display_align([ [ 'Move ' + catalog + ': ', fso_path ],
+		CeL.info(CeL.display_align([
+				[ CeL.gettext('Move %1: ', catalog), fso_path ],
 				[ '→ ', move_to_path ] ]));
-		add_log('Move ' + catalog + ':	' + fso_path + '	→	' + move_to_path);
+		add_log(CeL.gettext('Move %1:', catalog) + '	' + fso_path + '	→	'
+				+ move_to_path);
 		CeL.move_fso(fso_path, move_to_path);
 	}
 
@@ -463,12 +484,14 @@ function classify(fso_name, fso_path, fso_status, sub_fso_list) {
 		return;
 	}
 
-	if (/[\[(（【](?:ゲームCG|Game CG)/i.test(fso_name)) {
+	if (/[\[(（【](?:ゲームCG|Game CG|HCG)/i.test(fso_name)) {
 		move_to('game_CG');
 		return;
 	}
 
-	if (/[\[(（【](?:(?:一般)?画集)/.test(fso_name)) {
+	if (/[\[(（【](?:(?:一般)?画集|artbook)/i.test(fso_name)
+			|| /(?:原画集|設定資料集|Visual (?:fan)?book)|Official Book/i
+					.test(fso_name)) {
 		move_to('artbook');
 		return;
 	}
@@ -478,12 +501,27 @@ function classify(fso_name, fso_path, fso_status, sub_fso_list) {
 		return;
 	}
 
+	if (/[(\[](?:同人ゲーム|同人RPG)[)\]]/.test(fso_name)) {
+		move_to('doujin');
+		return;
+	}
+
 	if (/^\((?:C\d{2,3}|CC福岡\d{2,3}|CC大阪\d{2,3}|Futaket ?\d{2}|コミティア\d{3}|Cレヴォ\d{2})|COMIC1(?:[☆_]\d{2})?\)/
 			.test(fso_name)
 			|| fso_name.includes('同人誌')
-			// "(サンクリ2015 Winter) "
-			|| /^\((?:同人|COMIC1☆|こみトレ|例大祭|紅楼夢|ふたけっと|サンクリ)/.test(fso_name)) {
-		move_to('doujinshi');
+			// "(サンクリ2015 Winter) ", "秋季例大祭6"
+			|| /^\((?:同人誌|COMIC1☆|こみトレ|[^()]*例大祭[^()]*|紅楼夢|ふたけっと|サンクリ)/
+					.test(fso_name)) {
+		move_to(/\(オリジナル\)/.test(fso_name) ? 'doujin' : 'doujinshi');
+		return;
+	}
+
+	if (/[(\[](?:同人CG集)[)\]]/.test(fso_name)) {
+		// TODO: (BanG Dream!) [DL版].zip
+		matched = fso_name.match(/ \(([^()]+)\)\.[a-z]+$/);
+		move_to(matched
+		// 頁順修正 更新版
+		&& !/頁順|更新/.test(matched[1]) ? 'doujinshi' : 'doujin');
 		return;
 	}
 
@@ -528,7 +566,7 @@ function classify(fso_name, fso_path, fso_status, sub_fso_list) {
 				.test(matched[1])) {
 			// [Pixiv] 60枚 (3322006).zip
 		} else if (matched[1] !== '仮') {
-			move_to('_maybe_doujinshi');
+			move_to(/\(オリジナル\)/.test(fso_name) ? 'doujin' : '_maybe_doujinshi');
 			return;
 		}
 	}
@@ -618,19 +656,25 @@ Object.keys(catalog_directory).forEach(function(catalog) {
 
 	// 移除空的擬分類目錄/子分類目錄。
 	if (CeL.directory_is_empty(move_to_path)) {
-		CeL.log('Remove empty directory: ' + move_to_path);
+		CeL.log({
+			T : [ 'Remove empty directory: %1', move_to_path ]
+		});
 		CeL.remove_directory(move_to_path);
 	} else if (is_sub_catalog(catalog)) {
-		CeL.info('Directory of sub-catalog [' + catalog
-		//
-		+ '] created: ' + move_to_path);
+		CeL.info({
+			T : [ 'Directory of sub-catalog [%1] created: %2',
+			//
+			catalog, move_to_path ]
+		});
 	}
 });
 
 // -----------------------------------------------------------------
 
-CeL.info(CeL.env.script_name + ': ' + process_queue.length
-		+ ' directories to compress.');
+CeL.info({
+	T : [ '%2: %1 directories to compress.', process_queue.length,
+			CeL.env.script_name ]
+});
 
 // cache the path of p7z executable file
 var p7zip_path = CeL.executable_file_path('7z')
@@ -644,8 +688,10 @@ if (process_queue.length > 0) {
 	if (do_compress)
 		process_queue.forEach(compress_each_directory);
 	else
-		CeL.info('因為未設定要壓縮 (do_compress)，有 ' + process_queue.length
-				+ '個檔案或資料夾沒有壓縮。');
+		CeL.info({
+			T : [ '因為未設定要壓縮 (do_compress)，有 %1 個檔案或資料夾沒有壓縮。',
+					process_queue.length ]
+		});
 }
 
 function escape_filename(filename) {
@@ -656,7 +702,7 @@ function compress_each_directory(config, index) {
 	// config: [ directory_path, profile_name, message ]
 	var directory_path = config[0], profile_name = config[1], message = config[2],
 	// profile configuration
-	profile = Object.assign(CeL.null_Object(),
+	profile = Object.assign(Object.create(null),
 	//
 	compress_each_directory.profiles[profile_name.profile || profile_name]);
 	Object.assign(profile, {
@@ -670,17 +716,20 @@ function compress_each_directory(config, index) {
 		profile_name = profile_name.profile;
 	}
 
-	process.title = (index + 1) + '/' + process_queue.length + ' compressing';
-	CeL.info((index + 1) + '/' + process_queue.length + ' Compress '
-			+ profile_name + ': [' + directory_path + '] ' + (message || '')
-			+ '...');
+	process.title = CeL.gettext('%1/%2 compressing', index + 1,
+			process_queue.length);
+	CeL.info((index + 1) + '/' + process_queue.length + ' '
+			+ CeL.gettext('Compress') + ' ' + profile_name + ': ['
+			+ directory_path + '] ' + (message || '') + '...');
 
 	if (CeL.fs_status(profile.archive)) {
-		CeL.error('Target exists: ' + profile.archive);
+		CeL.error({
+			T : [ 'Target exists: %1', profile.archive ]
+		});
 		return;
 	}
 
-	add_log('Compress ' + profile_name + ':	' + profile.archive);
+	add_log(CeL.gettext('Compress %1:', profile_name) + '	' + profile.archive);
 
 	var command = '"'
 			+ p7zip_path

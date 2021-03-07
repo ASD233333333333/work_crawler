@@ -4,7 +4,7 @@
 
 'use strict';
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
@@ -19,8 +19,9 @@ crawler = new CeL.work_crawler({
 	base_URL : 'http://www.u17.com/',
 
 	// https://github.com/kanasimi/work_crawler/issues/250
-	// e.g., 97661 破例婚约（全彩）
-	acceptable_types : 'png',
+	// png: 97661 破例婚约（全彩）
+	// gif:
+	acceptable_types : 'png|gif',
 
 	// 解析 作品名稱 → 作品id get_work()
 	search_URL : 'www/ajax.php?mod=comic&act=comic_suggest&q=',
@@ -56,10 +57,10 @@ crawler = new CeL.work_crawler({
 			tags : [],
 			last_update : get_label(html.between('最后更新时间：', '<'))
 		};
-		// must fit 镇魂街, 雏蜂
 		eval(html.match(/var comic_id[^\r\n]+(?:\r?\n\s*var [^\r\n]+)+/)[0]
-				.replace(/var /g, 'work_data.').replace(/=\s*cfg_host_base/,
-						'=work_data.cfg_host_base'));
+		// must fit 镇魂街, 雏蜂, 战国千年
+		.replace(/var /g, 'work_data.').replace(/=\s*_?cfg_host_base/,
+				'=work_data.cfg_host_base||' + JSON.stringify(this.base_URL)));
 
 		while (matched = PATTERN_tags.exec(text)) {
 			work_data.tags.push(matched[1]);
@@ -131,7 +132,7 @@ crawler = new CeL.work_crawler({
 			chapter_data = JSON.parse(html);
 			if (!chapter_data.image_list && chapter_data.message) {
 				CeL.error(work_data.title + ' #' + chapter_NO + ': '
-				// e.g., "没有阅读权限"
+				// e.g., "没有阅读权限"。2019/8 時，無 `chapter_data.chapter`。
 				+ chapter_data.message);
 			} else {
 				chapter_data.image_list.forEach(function(image_data) {
@@ -155,11 +156,11 @@ crawler = new CeL.work_crawler({
 			});
 
 		} else {
-			throw '網站結構改變，無法取得資料！請回報此項錯誤。';
+			throw new Error('網站結構改變，無法取得資料！請回報此項錯誤。');
 		}
 
 		// type: '0','3': OK, '4': masked
-		if (+chapter_data.chapter.type === 4)
+		if (!chapter_data.chapter || +chapter_data.chapter.type === 4)
 			chapter_data.limited = true;
 		// console.log(chapter_data);
 		return chapter_data;

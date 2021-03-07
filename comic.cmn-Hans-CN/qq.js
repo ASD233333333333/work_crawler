@@ -6,15 +6,30 @@
 
 'use strict';
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
-var crawler = new CeL.work_crawler({
+var
+/**
+ * <code>
+ <a target="_blank" title="剑逆苍穹：一 西域霸主" href="/ComicView/index/id/630316/cid/3">
+ 一 西域霸主 </a>
+ <i class="ui-icon-free"></i> </span>
+
+ <a target="_blank" title="剑逆苍穹：四十四 以快破妖" href="/ComicView/index/id/630316/cid/48">
+ 四十四 以快破妖 </a>
+ <i class="ui-icon-pay"></i>  <i class="ui-icon-wnew"></i> </span>
+ </code>
+ */
+// [ , full chapter title, chapter url, chapter_title, pay icon ]
+PATTERN_chapter = /<a [\s\S]*?title="([^"]*)"[\s\S]*? href="([^"]+?\/cid\/\d{1,4})"[^<>]*>([\s\S]*?)<\/a>[\s\S]*?<i class="([^"]+)">/g,
+//
+crawler = new CeL.work_crawler({
 	// recheck:從頭檢測所有作品之所有章節。
 	// recheck : true,
 	// one_by_one : true,
-	base_URL : 'http://ac.qq.com/',
+	base_URL : 'https://ac.qq.com/',
 
 	// https://github.com/kanasimi/work_crawler/issues/251
 	// e.g., 630166 19天
@@ -25,8 +40,9 @@ var crawler = new CeL.work_crawler({
 	// 當圖像檔案過小，或是被偵測出非圖像(如不具有EOI)時，依舊強制儲存檔案。
 	// skip_error : true,
 
+	// e.g., 638085 我的充电女友\0091 我会一直陪着你\638085-91-007.jpg
 	// {Natural}MIN_LENGTH:最小容許圖案檔案大小 (bytes)。
-	MIN_LENGTH : 900,
+	MIN_LENGTH : 200,
 
 	// 解析 作品名稱 → 作品id get_work()
 	search_URL : function(work_title) {
@@ -42,7 +58,7 @@ var crawler = new CeL.work_crawler({
 		.replace(/：.+$/g, ''));
 	},
 	parse_search_result : function(html) {
-		var id_data = CeL.null_Object(),
+		var id_data = Object.create(null),
 		// {Array}id_list = [id,id,...]
 		id_list = [], matched, PATTERN_work_id =
 		//
@@ -60,7 +76,7 @@ var crawler = new CeL.work_crawler({
 		// e.g., `echo 今日限免： && node qq free`
 		free : function(insert_id_list, get_label) {
 			var _this = this;
-			this.free_title = CeL.null_Object();
+			this.free_title = Object.create(null);
 
 			function parse_html(XMLHttp) {
 				XMLHttp.responseText.each_between('mod-tag-zt-3', '</p>',
@@ -78,7 +94,7 @@ var crawler = new CeL.work_crawler({
 				//
 				free_file = _this.main_directory + 'free.json',
 				//
-				free = CeL.get_JSON(free_file) || CeL.null_Object();
+				free = CeL.get_JSON(free_file) || Object.create(null);
 
 				for ( var title in _this.free_title) {
 					if (_this.free_title.hasOwnProperty(title)) {
@@ -116,7 +132,7 @@ var crawler = new CeL.work_crawler({
 
 	// 取得作品的章節資料。 get_work_data()
 	work_URL : function(work_id) {
-		return 'Comic/comicInfo/id/' + (work_id | 0);
+		return 'Comic/comicInfo/id/' + work_id;
 	},
 	parse_work_data : function(html, get_label) {
 		// work_data={id,title,author,authors,chapter_count,last_update,last_download:{date,chapter}}
@@ -154,27 +170,25 @@ var crawler = new CeL.work_crawler({
 
 		return work_data;
 	},
-	get_chapter_list : function(work_data, html) {
+	get_chapter_list : function(work_data, html, get_label) {
 		work_data.chapter_list = [];
-		var matched,
-		// [ , chapter_id ]
-		PATTERN_chapter_id = /\/cid\/(\d{1,4})/g;
+		var matched;
+		// console.log(html);
 		html = html.between('<ol class="chapter-page-all works-chapter-list">',
 				'</ol>');
 		// 有些作品如"演平乱志"之類，章節並未按照編號排列。
-		while (matched = PATTERN_chapter_id.exec(html)) {
+		while (matched = PATTERN_chapter.exec(html)) {
+			// [ , full chapter title, chapter url, chapter_title, pay icon ]
 			work_data.chapter_list.push({
-				NO : matched[1]
+				title : get_label(matched[3]),
+				url : matched[2],
+				limited : matched[4].endsWith('pay')
 			});
 		}
 	},
 
 	// 取得每一個章節的各個影像內容資料。 get_chapter_data()
-	chapter_URL : function(work_data, chapter_NO) {
-		return 'ComicView/index/id/' + work_data.id + '/cid/'
-				+ work_data.chapter_list[chapter_NO - 1].NO;
-	},
-	parse_chapter_data : function(html, work_data) {
+	parse_chapter_data : function(html, work_data, get_label, chapter_NO) {
 		// decode chapter data
 		// 2018/11/2-7 之間改版
 		// modify from
@@ -251,6 +265,7 @@ var crawler = new CeL.work_crawler({
 		/window\s*(?:\.\s*nonce|\[([nonce"'\s+]+)\])\s*=(.{32,})/g;
 
 		// node qq 热血学霸
+		// console.log(html);
 		while (matched = PATTERN_nonce.exec(html)) {
 			// delete matched.input;
 			// console.log(matched);
@@ -290,9 +305,24 @@ var crawler = new CeL.work_crawler({
 		// 設定必要的屬性。
 		chapter_data.title = chapter_data.chapter.cTitle;
 		// chapter_data.image_count = chapter_data.picture.length;
-		chapter_data.image_list = chapter_data.picture;
 
-		chapter_data.limited = !chapter_data.chapter.canRead;
+		if (chapter_data.picture[0].url.includes(
+		// 有些漫畫的最新話會設定只在APP觀看 會取得
+		// https://manhua.qpic.cn/manhua_detail/0/14_11_10_a1827afc3b8d37cfd3f7242cc713f5751_109708576.png/0
+		'/14_11_10_a1827afc3b8d37cfd3f7242cc713f5751_109708576.png')) {
+			// assert: chapter_data.picture[0].pid === 16111
+			if (!work_data.last_download.start_chapter_next_time) {
+				CeL.info(CeL.gettext('下次從《%1》起下載。', chapter_data.title));
+				work_data.last_download.start_chapter_next_time = chapter_NO;
+			}
+			// work_data.chapter_list.truncate(chapter_NO);
+			chapter_data.limited = true;
+		} else {
+			// 正常情況。
+			chapter_data.image_list = chapter_data.picture;
+
+			chapter_data.limited = !chapter_data.chapter.canRead;
+		}
 
 		return chapter_data;
 	}

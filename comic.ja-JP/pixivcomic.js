@@ -6,7 +6,7 @@
 
 'use strict';
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
@@ -16,8 +16,10 @@ var base_URL = 'https://comic.pixiv.net/', crawler = new CeL.work_crawler({
 	// e.g., 785 働かないふたり 第45話
 	skip_error : true,
 
-	// 日本的線上漫畫網站習慣刪掉舊章節，因此每一次都必須從頭檢查。
+	// 日本的網路漫畫網站習慣刪掉舊章節，因此每一次都必須從頭檢查。
 	recheck : true,
+
+	acceptable_types : 'webp|jpg',
 
 	// one_by_one : true,
 	base_URL : base_URL,
@@ -94,7 +96,11 @@ var base_URL = 'https://comic.pixiv.net/', crawler = new CeL.work_crawler({
 				return;
 			return {
 				id : story.id,
-				title : story.name || story.short_name,
+				// 名稱顯示成兩行。
+				title : story.short_name + (story.name ?
+				// e.g., https://comic.pixiv.net/works/4252
+				// .short_name="第13話", .name="（４）"
+				/^[(（]/.test(story.name) ? story.name : ' ' + story.name : ''),
 				limited : !chapter_data.readable && chapter_data.message,
 				url : 'viewer/stories/' + story.id
 			};
@@ -105,6 +111,7 @@ var base_URL = 'https://comic.pixiv.net/', crawler = new CeL.work_crawler({
 		// 因為中間的章節可能已經被下架，因此依章節標題來定章節編號。
 		this.set_chapter_NO_via_title(work_data);
 
+		// console.trace(work_data.chapter_list);
 		// console.log(work_data.official_work.stories);
 	},
 
@@ -112,11 +119,10 @@ var base_URL = 'https://comic.pixiv.net/', crawler = new CeL.work_crawler({
 	// 執行在解析章節資料 process_chapter_data() 之前的作業 (async)。
 	// 必須自行保證執行 callback()，不丟出異常、中斷。
 	: function(XMLHttp, work_data, callback, chapter_NO) {
-		var _this = this, html = XMLHttp.responseText, url = html.between(
-		// <meta name="viewer-api-url"
-		// content="/api/v1/viewer/stories/JXXtyieE41/50811.json">
-		'<meta name="viewer-api-url" content="', '"');
+		// console.log(XMLHttp);
+		var html = XMLHttp.responseText;
 		work_data.token_options = {
+			error_retry : this.MAX_ERROR_RETRY,
 			headers : {
 				// work_data['csrf-token']
 				'X-CSRF-Token' : html.between(
@@ -125,79 +131,152 @@ var base_URL = 'https://comic.pixiv.net/', crawler = new CeL.work_crawler({
 				'X-Requested-With' : 'XMLHttpRequest'
 			}
 		};
+		// console.trace(work_data.token_options);
 
+		var url = html.between(
+		// <meta name="viewer-api-url"
+		// content="/api/v1/viewer/stories/JXXtyieE41/50811.json">
+		'<meta name="viewer-api-url" content="', '"');
+		// console.log(url);
 		if (url) {
 			this.get_URL(url, callback, null, work_data.token_options);
 			return;
 		}
 
+		var chapter_data = work_data.chapter_list[chapter_NO - 1];
+
+		url = html.between(
+				'<script id="__NEXT_DATA__" type="application/json">',
+				'</script>');
+		if (url) {
+			// 2020/6 via Google Chrome
+			Object.assign(chapter_data, JSON.parse(url));
+
+			var salt = chapter_data.runtimeConfig
+			//
+			&& chapter_data.runtimeConfig.salt
+			// 2020/8/20: No chapter_data.runtimeConfig supported
+			// salt is defined directly @
+			// https://comic.pixiv.net/_next/static/chunks/b60f68a1e08e7dab72e67792ea4c65a79a5af442.445088b0d1a2f05514d5.js
+			// t.update("".concat(e).concat("mAtW1X8SzGS880fsjEXlM73QpS1i4kUMBhyhdaYySk8nWz533nrEunaSplg63fzT"))
+			|| ('mAtW1X8SzGS880fsjEXlM73QpS1i4k'
+			//
+			+ 'UMBhyhdaYySk8nWz533nrEunaSplg63fzT');
+			var hash, time = (new Date).format('%Y-%2m-%2dT%2H:%2M:%2S%z')
+					.replace(/(\d{2})$/, ':$1');
+			if (this.forge) {
+				hash = this.forge.md.md5.create();
+				hash.update(time + salt);
+				hash = hash.digest().toHex();
+			} else {
+				hash = this.CryptoJS.MD5(time + salt).toString(
+						this.CryptoJS.enc.Hex);
+			}
+
+			// key: "getApiAppEpisodesIdReadRaw",
+			// https://comic.pixiv.net/_next/static/chunks/eb04f3552258e45f2446579a418399595863319c.e75f48a4015b43818882.js
+			// includes https://github.com/dmtrKovalenko/date-io
+			url = '/api/app/episodes/' + chapter_data.id + '/read';
+			// u.t.getApiAppEpisodesIdRead({xRequestedWith: u.z,
+			// https://comic.pixiv.net/_next/static/chunks/f76487c2815c6c0d6b3ac60de8a5a43085d6b6a4.38d2c49607f3f81dc8e8.js
+			this.setup_value('Referer', this.full_URL(this.chapter_URL(
+					work_data, chapter_NO)));
+			Object.assign(this.get_URL_options.headers, {
+				// Authorization : 'Bearer ' +
+				// this.configuration.accessToken("Bearer", []),
+
+				'X-Requested-With' : this.id/* "pixivcomic" */,
+				'X-Client-Time' : time,
+				'X-Client-Hash' : hash
+			});
+			this.get_URL(url, callback, null, work_data.token_options);
+			return;
+		}
+
+		url = html.between('<meta name="token-api-url" content="',
+		// /api/v1/viewer/token/d220bbe0ed815ceea5fd0308021fff9f.json
+		'"');
+		if (!url) {
+			if (typeof html === 'string' && html.includes('期限')) {
+				// e.g., html==="エピソードの公開期限が過ぎました"
+				chapter_data.limited = html;
+			}
+			callback();
+			return;
+		}
+
 		// https://comic.pixiv.net/assets/viewer-ae2940cef41fd61c265fde4c14916a3f49e96326e5542df3a12cc9a06fce8678.js
 		// 'X-CSRF-Token': e('meta[name="csrf-token"]').attr('content')
-		this.get_URL(html.between('<meta name="token-api-url" content="',
-		// /api/v1/viewer/token/d220bbe0ed815ceea5fd0308021fff9f.json
-		'"'), function(XMLHttp) {
+		this.get_URL(url, function(XMLHttp, error) {
 			try {
 				html = XMLHttp.responseText;
 				if (/<html/.test(html)) {
 					callback();
 					return;
 				}
+				if (html === undefined) {
+					console.log(XMLHttp);
+				}
+
 				html = JSON.parse(html);
 				if (html.error)
 					throw html.error;
 			} catch (e) {
-				if (_this.skip_error)
-					_this.onwarning(e);
+				if (this.skip_error)
+					this.onwarning(e);
 				else
-					_this.onerror(e);
+					this.onerror(e);
 				callback();
 				return;
 			}
-			var chapter_data = work_data.chapter_list[chapter_NO - 1];
+
 			chapter_data.token_data = html.data;
-			_this.get_URL('/api/v1/viewer/stories/'
+			this.get_URL('/api/v1/viewer/stories/'
 			// /api/v1/viewer/stories/___token___/00000.json
 			+ chapter_data.token_data.token + '/' + chapter_data.id + '.json',
 					callback, null, work_data.token_options);
-		}, {}, work_data.token_options);
+		}.bind(this), {}, work_data.token_options);
 	},
 	parse_chapter_data : function(html, work_data, get_label, chapter_NO) {
+		var chapter_data = work_data.chapter_list[chapter_NO - 1];
 		try {
 			html = JSON.parse(html);
 			if (html.error)
 				throw html.error;
 		} catch (e) {
-			// エピソードの公開期限が過ぎました
+			// console.debug(html);
 			if (typeof html === 'string' && html.includes('期限')) {
-				return {
-					limited : html
-				};
-			}
-			if (this.skip_error)
+				// e.g., html==="エピソードの公開期限が過ぎました"
+				chapter_data.limited = html;
+			} else if (this.skip_error)
 				this.onwarning(e);
 			else
 				this.onerror(e);
-			return;
+			return chapter_data;
 		}
 
-		var chapter_data = work_data.chapter_list[chapter_NO - 1];
 		// 避免覆寫 chapter_data.title
 		chapter_data = Object.assign(html.data, chapter_data);
-		html = html.data.contents;
-		if (html.length !== 1) {
-			throw '.length = ' + html.length;
-		}
-		// 設定必要的屬性。
-		chapter_data.image_list = [];
-		html[0].pages.forEach(function(view) {
-			for ( var page in view) {
-				if (false)
-					// 可行，但q=90會得到與q=50一樣的東西。
-					view[page].data.url = view[page].data.url.replace(
-							/q=[1-8]\d,/, 'q=90,')
-				chapter_data.image_list.push(view[page].data);
+		if (html.data.reading_episode) {
+			// 2020/6 via Google Chrome
+			chapter_data.image_list = html.data.reading_episode.pages;
+		} else {
+			html = html.data.contents;
+			if (html.length !== 1) {
+				throw new Error('.length = ' + html.length);
 			}
-		});
+			// 設定必要的屬性。
+			chapter_data.image_list = [];
+			html[0].pages.forEach(function(view) {
+				for ( var page in view) {
+					if (false)
+						// 可行，但q=90會得到與q=50一樣的東西。
+						view[page].data.url = view[page].data.url.replace(
+								/q=[1-8]\d,/, 'q=90,')
+					chapter_data.image_list.push(view[page].data);
+				}
+			});
+		}
 
 		return chapter_data;
 	},
@@ -215,5 +294,40 @@ var base_URL = 'https://comic.pixiv.net/', crawler = new CeL.work_crawler({
 // CeL.set_debug(3);
 
 // 缺少這個會從章節頁面跳回作品頁面。
-crawler.get_URL_options.cookie = 'open_work_page=yes';
-start_crawler(crawler, typeof module === 'object' && module);
+crawler.setup_value('cookie', 'open_work_page=yes');
+
+setup_crawler(crawler, typeof module === 'object' && module);
+
+CeL.get_URL_cache(
+// https://cdnjs.com/libraries/crypto-js
+'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js',
+// https://cryptojs.gitbook.io/docs/
+// https://github.com/brix/crypto-js
+function(contents) {
+	crawler.CryptoJS = require(crawler.main_directory
+	//
+	+ 'crypto-js.min.js');
+	// console.log(crawler.CryptoJS.MD5('text').toString(crawler.CryptoJS.enc.Hex));
+	start_crawler(crawler, typeof module === 'object' && module);
+}, {
+	directory : crawler.main_directory
+});
+
+if (false) {
+	CeL.get_URL_cache(
+	//
+	'https://cdn.jsdelivr.net/npm/node-forge@0.7.0/dist/forge.min.js',
+	// https://github.com/digitalbazaar/forge
+	function(contents) {
+		crawler.forge = require(crawler.main_directory + 'forge.min.js');
+		if (false) {
+			var hash = crawler.forge.md.md5.create();
+			hash.update('text');
+			hash = hash.digest().toHex();
+			console.log(hash);
+		}
+		start_crawler(crawler, typeof module === 'object' && module);
+	}, {
+		directory : crawler.main_directory
+	});
+}

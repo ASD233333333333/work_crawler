@@ -8,7 +8,7 @@
 
 'use strict';
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
@@ -29,7 +29,7 @@ var crawler = new CeL.work_crawler({
 	// allow .jpg without EOI mark.
 	// allow_EOI_error : true,
 	// 當圖像檔案過小，或是被偵測出非圖像(如不具有EOI)時，依舊強制儲存檔案。
-	// skip_error : true,
+	skip_error : true,
 
 	// 循序逐個、一個個下載圖像。僅對漫畫有用，對小說無用。小說章節皆為逐個下載。 Download images one by one.
 	// one_by_one : true,
@@ -37,6 +37,7 @@ var crawler = new CeL.work_crawler({
 	// 2018/6/4 6:34 最後一次成功存取 http://www.733mh.com/
 	// 之後更改域名→ http://www.mh160.com/
 	// 2019/2/22?更改域名與名稱→ 来漫画 https://www.laimanhua.com/
+	// 2019/7/2 有些瀏覽器無法取得圖片，必須用 mobile 版。
 	base_URL : 'https://www.laimanhua.com/',
 	charset : 'gb2312',
 
@@ -52,9 +53,9 @@ var crawler = new CeL.work_crawler({
 		// console.log(html);
 		var id_list = [], id_data = [], matched, PATTERN =
 		//
-		/<a href="\/kanmanhua\/(\d+)\/?" title="([^"<>]+)">/g;
+		/\/kanmanhua\/([\w\d]+)\/?" title="([^"<>]+)">/g;
 		while (matched = PATTERN.exec(html)) {
-			id_list.push(+matched[1]);
+			id_list.push(matched[1]);
 			id_data.push(matched[2]);
 		}
 		return [ id_list, id_data ];
@@ -177,24 +178,19 @@ var crawler = new CeL.work_crawler({
 // CeL.set_debug(3);
 
 // http://www.mh160.com/template/skin4_20110501/js/mh160style/base64.js
+// 2020-06-21T13:08:54Z:
+// https://www.laimanhua.com/template/skin4_20110501/js/laimanhuastyle/base64.js
 function getpicdamin(cid, currentChapterid) {
 	var yuming;
 
 	// copy-paste start ---------------
 
-	if (parseInt(cid) > 10000) {
-
-		yuming = "https://mhpic6.kingwar.cn";
-	} else {
-
-		yuming = "https://mhpic7.kingwar.cn";
-	}
-
+	yuming = "https://mhpic6.kingwar.cn";
 	if (parseInt(currentChapterid) > 542724) {
-
 		yuming = "https://mhpic5.kingwar.cn";
-
 	}
+	if (parseInt(currentChapterid) > 885032)
+		yuming = "https://mhpic88.kingwar.cn";
 	return yuming;
 
 	// copy-paste end -----------------

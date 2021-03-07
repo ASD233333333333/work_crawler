@@ -6,11 +6,11 @@
 
 'use strict';
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
-CeL.run('application.net.work_crawler.qTcms2017');
+CeL.run('application.net.work_crawler.sites.qTcms2017');
 
 // ----------------------------------------------------------------------------
 
@@ -20,6 +20,8 @@ var crawler = CeL.qTcms2017({
 
 	// {Natural}最小容許圖案檔案大小 (bytes)。
 	// MIN_LENGTH : 500,
+
+	skip_error : true,
 
 	base_URL : 'http://www.iqg365.com/'
 });

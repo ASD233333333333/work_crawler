@@ -4,7 +4,7 @@
 
 'use strict';
 
-require('../work_crawler_loder.js');
+require('../work_crawler_loader.js');
 
 // ----------------------------------------------------------------------------
 
@@ -45,7 +45,7 @@ var crawler = new CeL.work_crawler({
 	convert_id : {
 		r18 : function(callback) {
 			CeL.info('これ以降はR-18小説と見なされる。');
-			this.search_URL = '?mode=search_r18cs&word=';
+			this.search_URL = '?mode=search_r18&word=';
 			callback();
 		}
 	},
@@ -65,7 +65,7 @@ var crawler = new CeL.work_crawler({
 		// <table class="table1">
 		// <table width=100% class=table1>
 		html = html.between('<table class="table1">', '</div>');
-		var work_data = CeL.null_Object(), PATTERN =
+		var work_data = Object.create(null), PATTERN =
 		// 2019/3/10 ハーメルン 改版
 		/<td class="label"[^<>]*>([^<>]+)<\/td><td[^<>]*>(.+?)<\/td>/g;
 
@@ -166,7 +166,7 @@ var crawler = new CeL.work_crawler({
 	parse_chapter_data : function(html, work_data, get_label, chapter_NO) {
 		// 儲存單一檔案之全篇文字。
 		if (!this.got_all) {
-			this.got_all = CeL.null_Object();
+			this.got_all = Object.create(null);
 		}
 		if (!this.got_all[work_data.id]) {
 			// 避免多章節時重複get。
@@ -219,5 +219,5 @@ var crawler = new CeL.work_crawler({
 // CeL.set_debug(3);
 
 // for 年齢確認: あなたは18歳以上ですか？
-crawler.get_URL_options.cookie = 'over18=off';
+crawler.setup_value('cookie', 'over18=off');
 start_crawler(crawler, typeof module === 'object' && module);
